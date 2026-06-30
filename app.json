@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "Donkey App",
+    "slug": "donkeyapp-native",
+    "version": "2.1.11",
+    "orientation": "portrait",
+    "icon": "./assets/icon-512.png",
+    "scheme": "donkeyapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.donkeyapp.app",
+      "buildNumber": "42",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+"android": {
+  "adaptiveIcon": {
+    "backgroundColor": "#0b2a5b",
+    "foregroundImage": "./assets/icon-512.png"
+  },
+  "edgeToEdgeEnabled": true,
+  "predictiveBackGestureEnabled": false,
+  "package": "com.donkeyapp.app",
+  "versionCode": 42
+},
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0b2a5b",
+          "dark": {
+            "backgroundColor": "#0b2a5b"
+          }
+        }
+      ],
+      "expo-font",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3866370568277471~5935732508",
+          "iosAppId": "ca-app-pub-3866370568277471~1621348903",
+          "delayAppMeasurementInit": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "eb7b5709-70ab-40f4-8191-2ff768086e58"
+      }
+    },
+    "owner": "donkeyappofficial"
+  }
+}
