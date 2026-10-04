@@ -6,10 +6,12 @@
 //   next video turns sound back on.
 // - Nothing here reads or writes the phone's Video sound setting.
 //
-// OVERLAY: the description, "Added by", and see-through buttons (favourite,
-// vote, report, share) sit at the bottom. They hide when the video is tapped
-// or after 7 seconds without any touch; a tap brings them back.
-// Press and hold the video to pause; let go to play again.
+// OVERLAY: close and sound buttons (top), a play/pause button (centre), and
+// the description, "Added by" and see-through buttons (favourite, vote,
+// report, share) at the bottom. All of them hide when the video is tapped or
+// after 7 seconds without any touch; a tap brings them back.
+// The centre button pauses until pressed again (overlay stays up while
+// paused). Press and hold the video pauses only while held.
 //
 // The list starts with the tapped video, then loads more videos page by page
 // from the database function get_reel_videos (independent of the Home feed).
@@ -122,6 +124,8 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
   const [index, setIndex] = useState(0);
   const [reelSoundOn, setReelSoundOn] = useState(true);
   const [paused, setPaused] = useState(false);
+  const [holding, setHolding] = useState(false);
+  const pausedRef = useRef(false);
   const [noMore, setNoMore] = useState(false);
 
   // Overlay (description + buttons)
@@ -131,7 +135,6 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
   const [reportReason, setReportReason] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const holdingRef = useRef(false);
 
   // Same favourites / votes as the rest of the app
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
@@ -155,9 +158,11 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
   };
 
   // Show the overlay and (re)start the 7-second hide timer.
+  // While paused the overlay stays up (no timer).
   const showOverlay = useCallback(() => {
     clearHideTimer();
     setOverlayVisible(true);
+    if (pausedRef.current) return;
     hideTimerRef.current = setTimeout(() => {
       setOverlayVisible(false);
       setVoteOpen(false);
@@ -176,6 +181,23 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
   };
 
   useEffect(() => () => clearHideTimer(), []);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
+
+  const togglePause = () => {
+    if (paused) {
+      pausedRef.current = false;
+      setPaused(false);
+      showOverlay();
+    } else {
+      pausedRef.current = true;
+      setPaused(true);
+      clearHideTimer();
+      setOverlayVisible(true);
+    }
+  };
 
   // While the vote bubble or report sheet is open, keep the overlay up.
   useEffect(() => {
@@ -242,7 +264,9 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
     setVideos([startVideo]);
     setIndex(0);
     setReelSoundOn(true);
+    pausedRef.current = false;
     setPaused(false);
+    setHolding(false);
     setNoMore(false);
     setVoteOpen(false);
     setReportOpen(false);
@@ -269,7 +293,9 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
       setIndex(newIndex);
       // Every new Reel video starts with sound and playing, overlay shown.
       setReelSoundOn(true);
+      pausedRef.current = false;
       setPaused(false);
+      setHolding(false);
       setReportOpen(false);
       setReportReason(null);
       showOverlay();
@@ -287,24 +313,16 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
       showOverlay();
       return;
     }
-    if (overlayVisible) {
+    // While paused, a tap keeps the overlay (and play button) on screen.
+    if (overlayVisible && !paused) {
       hideOverlay();
     } else {
       showOverlay();
     }
   };
 
-  const onHoldStart = () => {
-    holdingRef.current = true;
-    setPaused(true);
-  };
-
-  const onHoldEnd = () => {
-    if (holdingRef.current) {
-      holdingRef.current = false;
-      setPaused(false);
-    }
-  };
+  const onHoldStart = () => setHolding(true);
+  const onHoldEnd = () => setHolding(false);
 
   const openProfile = (video: ReelVideo) => {
     if (!video.user_id) return;
@@ -352,7 +370,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
           <Image source={{ uri: posterUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
         ) : null}
 
-        {isCurrent && uri ? <ReelPlayer uri={uri} soundOn={reelSoundOn} paused={paused} /> : null}
+        {isCurrent && uri ? <ReelPlayer uri={uri} soundOn={reelSoundOn} paused={paused || holding} /> : null}
 
         <Pressable
           style={StyleSheet.absoluteFill}
@@ -363,7 +381,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
           accessibilityLabel="Tap to show or hide buttons, hold to pause"
         />
 
-        {isCurrent && paused ? (
+        {isCurrent && holding && !paused ? (
           <View style={styles.centerOverlay} pointerEvents="none">
             <View style={styles.playBadge}>
               <MaterialIcons name="pause" size={40} color="#fff" />
@@ -403,7 +421,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
             windowSize={3}
             removeClippedSubviews
             decelerationRate="fast"
-            extraData={{ index, reelSoundOn, paused }}
+            extraData={{ index, reelSoundOn, paused, holding }}
           />
         ) : null}
 
@@ -535,24 +553,44 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
           </View>
         ) : null}
 
-        {/* Always visible: close and sound */}
-        <Pressable
-          style={[styles.topButton, { top: insets.top + 12, left: 16 }]}
-          onPress={onClose}
-          hitSlop={12}
-          accessibilityLabel="Close"
-        >
-          <MaterialIcons name="close" size={28} color="#fff" />
-        </Pressable>
+        {/* Close, sound and play/pause hide and return with the rest of the overlay */}
+        {overlayVisible ? (
+          <>
+            <Pressable
+              style={[styles.topButton, { top: insets.top + 12, left: 16 }]}
+              onPress={onClose}
+              hitSlop={12}
+              accessibilityLabel="Close"
+            >
+              <MaterialIcons name="close" size={28} color="#fff" />
+            </Pressable>
 
-        <Pressable
-          style={[styles.topButton, { top: insets.top + 12, right: 16 }]}
-          onPress={() => setReelSoundOn((s) => !s)}
-          hitSlop={12}
-          accessibilityLabel={reelSoundOn ? "Turn sound off" : "Turn sound on"}
-        >
-          <MaterialIcons name={reelSoundOn ? "volume-up" : "volume-off"} size={26} color="#fff" />
-        </Pressable>
+            <Pressable
+              style={[styles.topButton, { top: insets.top + 12, right: 16 }]}
+              onPress={() => {
+                setReelSoundOn((s) => !s);
+                showOverlay();
+              }}
+              hitSlop={12}
+              accessibilityLabel={reelSoundOn ? "Turn sound off" : "Turn sound on"}
+            >
+              <MaterialIcons name={reelSoundOn ? "volume-up" : "volume-off"} size={26} color="#fff" />
+            </Pressable>
+
+            {current && !reportOpen ? (
+              <View style={styles.centerOverlay} pointerEvents="box-none">
+                <Pressable
+                  style={styles.playBadge}
+                  onPress={togglePause}
+                  hitSlop={10}
+                  accessibilityLabel={paused ? "Play video" : "Pause video"}
+                >
+                  <MaterialIcons name={paused ? "play-arrow" : "pause"} size={42} color="#fff" />
+                </Pressable>
+              </View>
+            ) : null}
+          </>
+        ) : null}
 
         {toast ? (
           <View style={[styles.toast, { top: insets.top + 70 }]} pointerEvents="none">
