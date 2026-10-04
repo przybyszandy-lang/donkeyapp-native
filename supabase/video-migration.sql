@@ -266,3 +266,26 @@ grant execute on function public.get_recent_jokes_with_names_mixed_v2(text, inte
 grant execute on function public.get_favourite_jokes_with_names_mixed_v2(uuid[]) to anon, authenticated;
 grant execute on function public.get_profile_jokes_with_name_mixed_v2(uuid) to anon, authenticated;
 grant execute on function public.get_reel_videos(text, integer, timestamp with time zone, uuid) to anon, authenticated;
+-- STEP 6 (4 Oct 2026): Reel mode also returns the video description (content).
+-- Return type changed, so the function was dropped and created again.
+drop function if exists public.get_reel_videos(text, integer, timestamp with time zone, uuid);
+
+create function public.get_reel_videos(p_language text, p_limit integer, p_after_created_at timestamp with time zone, p_after_id uuid)
+ returns table(id uuid, created_at timestamp with time zone, language text, user_id uuid, display_name text, video_path text, image_path text, content text)
+ language sql stable security definer set search_path to 'public'
+as $function$
+  select j.id, j.created_at, j.language, j.user_id,
+         coalesce(pp.display_name, 'Anonymous') as display_name,
+         j.video_path, j.image_path, j.content
+  from public.jokes j
+  left join public.public_profiles pp on pp.id = j.user_id
+  where j.content_type = 'video' and j.video_path is not null
+    and j.is_visible = true and j.is_flagged = false
+    and j.language = p_language
+    and (p_after_created_at is null or j.created_at < p_after_created_at
+         or (j.created_at = p_after_created_at and j.id < p_after_id))
+  order by j.created_at desc, j.id desc
+  limit greatest(1, least(p_limit, 50));
+$function$;
+
+grant execute on function public.get_reel_videos(text, integer, timestamp with time zone, uuid) to anon, authenticated;
