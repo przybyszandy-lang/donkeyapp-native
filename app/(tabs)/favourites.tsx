@@ -18,16 +18,26 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-na
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
+import { useIsFocused } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
 
 import FeedAdSlot from "../../components/FeedAdSlot";
+import ReelViewer from "../../components/ReelViewer";
+import VideoCard from "../../components/VideoCard";
 import { supabase } from "../../lib/supabase";
+import {
+  ReelVideo,
+  useAppIsActive,
+  useMostVisibleVideo,
+  useVideoSoundSetting,
+} from "../../lib/video";
 
 type JokeRow = {
   id: string;
   content: string;
   content_type?: string;
   image_path?: string | null;
+  video_path?: string | null;
   created_at: string;
   language: string;
   user_id: string | null;
@@ -51,6 +61,12 @@ export default function FavouritesScreen() {
   const [textSize, setTextSize] = useState<"Small" | "Normal" | "Large">("Normal");
   const [memeRatios, setMemeRatios] = useState<Record<string, number>>({});
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [reelStart, setReelStart] = useState<ReelVideo | null>(null);
+  const [jokeLanguage, setJokeLanguage] = useState("English");
+  const [videoSoundOn, setVideoSoundOn] = useVideoSoundSetting();
+  const appIsActive = useAppIsActive();
+  const isFocused = useIsFocused();
+  const { activeVideoId, viewabilityConfig, onViewableItemsChanged } = useMostVisibleVideo();
   const zoomScale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -130,8 +146,10 @@ export default function FavouritesScreen() {
     try {
       const rawDark = await AsyncStorage.getItem(DARK_MODE_KEY);
       const rawText = await AsyncStorage.getItem(TEXT_SIZE_KEY);
+      const rawLanguage = await AsyncStorage.getItem("donkey:language:v1");
 
       setDarkMode(rawDark === "true");
+      if (rawLanguage) setJokeLanguage(rawLanguage);
 
       if (rawText === "Small" || rawText === "Normal" || rawText === "Large") {
         setTextSize(rawText);
@@ -168,7 +186,7 @@ export default function FavouritesScreen() {
         return next;
       });
 
-      const { data, error } = await supabase.rpc("get_favourite_jokes_with_names_mixed", {
+      const { data, error } = await supabase.rpc("get_favourite_jokes_with_names_mixed_v2", {
         p_ids: ids,
       });
 
@@ -295,6 +313,26 @@ export default function FavouritesScreen() {
           </Pressable>
         ) : null}
 
+        {item.content_type === "video" && item.video_path ? (
+          <VideoCard
+            videoPath={item.video_path}
+            posterPath={item.image_path}
+            active={activeVideoId === item.id && isFocused && appIsActive && !reelStart && !zoomImage}
+            soundOn={videoSoundOn}
+            onToggleSound={() => setVideoSoundOn(!videoSoundOn)}
+            onOpen={() =>
+              setReelStart({
+                id: item.id,
+                video_path: item.video_path as string,
+                image_path: item.image_path,
+                user_id: item.user_id,
+                display_name: item.display_name,
+                created_at: item.created_at,
+              })
+            }
+          />
+        ) : null}
+
         <Text
           style={[
             styles.jokeText,
@@ -347,7 +385,7 @@ export default function FavouritesScreen() {
             darkMode && styles.cardFooterDark,
           ]}
         >
-          {item.content_type !== "meme" && (
+          {item.content_type !== "meme" && item.content_type !== "video" && (
             <Pressable onPress={() => copyJoke(item.content, item.id)}>
               <MaterialIcons
                 name={copiedJokeId === item.id ? "check" : "content-copy"}
@@ -360,6 +398,8 @@ export default function FavouritesScreen() {
           <Pressable onPress={() =>
             item.content_type === "meme"
               ? handleShareJoke("Check out this meme on Donkey App 😂", item.id)
+              : item.content_type === "video"
+              ? handleShareJoke("Check out this video on Donkey App 😂", item.id)
               : handleShareJoke(item.content, item.id)
           }>
             <MaterialIcons
@@ -461,8 +501,16 @@ export default function FavouritesScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
         />
       )}
+
+      <ReelViewer
+        startVideo={reelStart}
+        language={jokeLanguage}
+        onClose={() => setReelStart(null)}
+      />
 
       <Modal visible={!!zoomImage} transparent animationType="fade" onRequestClose={() => setZoomImage(null)}>
         <GestureHandlerRootView style={{ flex: 1 }}>

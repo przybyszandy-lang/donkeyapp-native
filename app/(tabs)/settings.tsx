@@ -19,6 +19,7 @@ import {
 } from "react-native";
 
 import { supabase } from "../../lib/supabase";
+import { useVideoSoundSetting } from "../../lib/video";
 
 // ------------------------------
 // Types
@@ -109,6 +110,9 @@ export default function SettingsScreen() {
   const [jokeLanguageDraft, setJokeLanguageDraft] =
     useState<JokeLanguageOption>("English");
   const isFocused = useIsFocused();
+
+  // Phone-only video sound preference (never stored in Supabase).
+  const [videoSoundOn, setVideoSoundOn] = useVideoSoundSetting();
 
   // ------------------------------
   // Load saved settings + profile
@@ -335,6 +339,17 @@ useEffect(() => {
         <Text style={[styles.value, darkValueStyle]}>{jokeLanguage}</Text>
       </Pressable>
 
+      <View style={[styles.row, darkRowStyle]}>
+        <Text style={[styles.label, darkLabelStyle]}>Video sound</Text>
+        <Switch
+          value={videoSoundOn}
+          onValueChange={(value) => setVideoSoundOn(value)}
+          trackColor={{ false: "#9a9a9a", true: "#2f71d3" }}
+          thumbColor={videoSoundOn ? "#ffffff" : "#2f71d3"}
+          ios_backgroundColor="#9a9a9a"
+        />
+      </View>
+
       {/* Appearance */}
       <Text style={[styles.section, darkSectionStyle]}>Appearance</Text>
 
@@ -456,7 +471,7 @@ useEffect(() => {
 
       <View style={[styles.row, darkRowStyle]}>
         <Text style={[styles.label, darkLabelStyle]}>Version</Text>
-        <Text style={[styles.value, darkValueStyle]}>2.1.11</Text>
+        <Text style={[styles.value, darkValueStyle]}>2.2.0</Text>
       </View>
 
       {/* Text size modal */}

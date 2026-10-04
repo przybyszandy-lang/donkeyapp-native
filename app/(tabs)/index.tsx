@@ -31,13 +31,22 @@ import {
 } from "@expo-google-fonts/open-sans";
 
 import FeedAdSlot from "../../components/FeedAdSlot";
+import ReelViewer from "../../components/ReelViewer";
+import VideoCard from "../../components/VideoCard";
 import { supabase } from "../../lib/supabase";
+import {
+  ReelVideo,
+  useAppIsActive,
+  useMostVisibleVideo,
+  useVideoSoundSetting,
+} from "../../lib/video";
 
 type JokeRow = {
   id: string;
   content: string;
   content_type?: string;
   image_path?: string | null;
+  video_path?: string | null;
   created_at: string;
   language: string;
   average: number;
@@ -105,6 +114,10 @@ export default function HomeScreen() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [memeRatios, setMemeRatios] = useState<Record<string, number>>({});
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [reelStart, setReelStart] = useState<ReelVideo | null>(null);
+  const [videoSoundOn, setVideoSoundOn] = useVideoSoundSetting();
+  const appIsActive = useAppIsActive();
+  const { activeVideoId, viewabilityConfig, onViewableItemsChanged } = useMostVisibleVideo();
 const zoomScale = useSharedValue(1);
 const translateX = useSharedValue(0);
 const translateY = useSharedValue(0);
@@ -231,7 +244,7 @@ const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
   const loadRecentJokes = async () => {
     try {
-const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed", {
+const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2", {
         p_language: jokeLanguage,
         p_limit: PAGE_SIZE,
       });
@@ -270,7 +283,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed", 
     setErrorText(null);
 
     try {
-      const { data, error } = await supabase.rpc("get_jokes_feed_mixed", {
+      const { data, error } = await supabase.rpc("get_jokes_feed_mixed_v2", {
         p_limit: FETCH_SIZE,
         p_after_created_at: null,
         p_after_id: null,
@@ -306,7 +319,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed", 
     setErrorText(null);
 
     try {
-      const { data, error } = await supabase.rpc("get_jokes_feed_mixed", {
+      const { data, error } = await supabase.rpc("get_jokes_feed_mixed_v2", {
         p_limit: FETCH_SIZE,
         p_after_created_at: cursorCreatedAt,
         p_after_id: cursorId,
@@ -564,6 +577,36 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed", 
   </Pressable>
 ) : null}
 
+        {/* Video */}
+        {item.content_type === "video" && item.video_path ? (
+          <VideoCard
+            videoPath={item.video_path}
+            posterPath={item.image_path}
+            active={
+              activeVideoId === item.id &&
+              isFocused &&
+              appIsActive &&
+              !reelStart &&
+              !menuOpen &&
+              !reportModalOpen &&
+              !authModalOpen &&
+              !zoomImage
+            }
+            soundOn={videoSoundOn}
+            onToggleSound={() => setVideoSoundOn(!videoSoundOn)}
+            onOpen={() =>
+              setReelStart({
+                id: item.id,
+                video_path: item.video_path,
+                image_path: item.image_path,
+                user_id: item.user_id,
+                display_name: item.display_name,
+                created_at: item.created_at,
+              })
+            }
+          />
+        ) : null}
+
         {/* Joke text */}
         <>
           {item.isRecentlyAdded && (
@@ -671,7 +714,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed", 
             </View>
           )}  
                 {/* Copy — jokes only */}
-          {item.content_type !== "meme" && (
+          {item.content_type !== "meme" && item.content_type !== "video" && (
             <>
               <Pressable
                 style={styles.footerAction}
@@ -693,6 +736,8 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed", 
             onPress={() =>
               item.content_type === "meme"
                 ? handleShareJoke("Check out this meme on Donkey App 😂", item.id)
+                : item.content_type === "video"
+                ? handleShareJoke("Check out this video on Donkey App 😂", item.id)
                 : handleShareJoke(item.content, item.id)
             }
           >
@@ -1605,6 +1650,8 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed", 
         showsVerticalScrollIndicator={false}
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
 removeClippedSubviews={false}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
         onMomentumScrollBegin={() => {
           onEndReachedCalledDuringMomentum.current = false;
         }}
@@ -1627,6 +1674,12 @@ removeClippedSubviews={false}
             )}
           </View>
         }
+      />
+
+      <ReelViewer
+        startVideo={reelStart}
+        language={jokeLanguage}
+        onClose={() => setReelStart(null)}
       />
 
       {toastMessage && (
