@@ -7,13 +7,13 @@
 // - Tapping the video opens Reel mode through onOpen.
 
 import { MaterialIcons } from "@expo/vector-icons";
-import { useEvent } from "expo";
 import { Image } from "expo-image";
-import { useVideoPlayer, VideoView } from "expo-video";
+import { VideoView } from "expo-video";
 import React, { memo, useEffect } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { videoFileUrl } from "../lib/video";
+import { useRetryingPlayer } from "./useRetryingPlayer";
 
 type Props = {
   videoPath: string;
@@ -25,7 +25,7 @@ type Props = {
 };
 
 function ActivePlayer({ uri, soundOn }: { uri: string; soundOn: boolean }) {
-  const player = useVideoPlayer({ uri, useCaching: true }, (p) => {
+  const { player, status, errorMessage } = useRetryingPlayer(uri, (p) => {
     p.loop = true;
     p.muted = !soundOn;
     // Muted feed videos must never stop the user's own music.
@@ -38,7 +38,6 @@ function ActivePlayer({ uri, soundOn }: { uri: string; soundOn: boolean }) {
     player.audioMixingMode = soundOn ? "auto" : "mixWithOthers";
   }, [player, soundOn]);
 
-  const { status } = useEvent(player, "statusChange", { status: player.status });
 
   return (
     <>
@@ -57,6 +56,7 @@ function ActivePlayer({ uri, soundOn }: { uri: string; soundOn: boolean }) {
       {status === "error" ? (
         <View style={styles.centerOverlay} pointerEvents="none">
           <Text style={styles.errorText}>Video unavailable</Text>
+          {errorMessage ? <Text style={styles.errorDetail}>{errorMessage}</Text> : null}
         </View>
       ) : null}
     </>
@@ -138,5 +138,12 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#fff",
     fontSize: 14,
+  },
+  errorDetail: {
+    color: "#ccc",
+    fontSize: 11,
+    marginTop: 4,
+    paddingHorizontal: 16,
+    textAlign: "center",
   },
 });

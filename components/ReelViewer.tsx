@@ -12,10 +12,9 @@
 // so no sound can keep playing.
 
 import { MaterialIcons } from "@expo/vector-icons";
-import { useEvent } from "expo";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useVideoPlayer, VideoView } from "expo-video";
+import { VideoView } from "expo-video";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -34,6 +33,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "../lib/supabase";
 import { ReelVideo, videoFileUrl } from "../lib/video";
+import { useRetryingPlayer } from "./useRetryingPlayer";
 
 const PAGE_SIZE = 10;
 
@@ -52,7 +52,7 @@ function ReelPlayer({
   soundOn: boolean;
   paused: boolean;
 }) {
-  const player = useVideoPlayer({ uri, useCaching: true }, (p) => {
+  const { player, status, errorMessage } = useRetryingPlayer(uri, (p) => {
     p.loop = true;
     p.muted = !soundOn;
     p.audioMixingMode = "auto";
@@ -71,7 +71,6 @@ function ReelPlayer({
     }
   }, [player, paused]);
 
-  const { status } = useEvent(player, "statusChange", { status: player.status });
 
   return (
     <>
@@ -90,6 +89,7 @@ function ReelPlayer({
       {status === "error" ? (
         <View style={styles.centerOverlay} pointerEvents="none">
           <Text style={styles.whiteText}>Video unavailable</Text>
+          {errorMessage ? <Text style={styles.errorDetail}>{errorMessage}</Text> : null}
         </View>
       ) : null}
     </>
@@ -325,5 +325,12 @@ const styles = StyleSheet.create({
   },
   authorName: {
     fontWeight: "700",
+  },
+  errorDetail: {
+    color: "#ccc",
+    fontSize: 12,
+    marginTop: 6,
+    paddingHorizontal: 24,
+    textAlign: "center",
   },
 });
