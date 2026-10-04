@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  DeviceEventEmitter,
   FlatList,
   Modal,
   Pressable,
@@ -31,6 +32,7 @@ import { useIsFocused } from "@react-navigation/native";
 import FeedAdSlot from "../../components/FeedAdSlot";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
+import { FAVOURITES_CHANGED_EVENT, VOTES_CHANGED_EVENT } from "../../lib/jokeActions";
 import { supabase } from "../../lib/supabase";
 import {
   ReelVideo,
@@ -94,6 +96,20 @@ export default function ProfileScreen() {
   const appIsActive = useAppIsActive();
   const isFocused = useIsFocused();
   const { activeVideoId, viewabilityConfig, onViewableItemsChanged } = useMostVisibleVideo();
+
+  // Stay in sync with favourites / votes changed inside Reel mode.
+  useEffect(() => {
+    const favSub = DeviceEventEmitter.addListener(FAVOURITES_CHANGED_EVENT, (ids: string[]) =>
+      setFavouriteIds(new Set(ids))
+    );
+    const voteSub = DeviceEventEmitter.addListener(VOTES_CHANGED_EVENT, (next: Record<string, "bad" | "meh" | "good" | "great">) =>
+      setVotesByJokeId(next)
+    );
+    return () => {
+      favSub.remove();
+      voteSub.remove();
+    };
+  }, []);
   const zoomScale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -564,6 +580,7 @@ export default function ProfileScreen() {
           <VideoCard
             videoPath={item.video_path}
             posterPath={item.image_path}
+            description={item.content}
             active={
               activeVideoId === item.id &&
               isFocused &&
@@ -582,23 +599,26 @@ export default function ProfileScreen() {
                 user_id: item.user_id,
                 display_name: item.display_name,
                 created_at: item.created_at,
+                content: item.content,
               })
             }
           />
         ) : null}
 
-        <Text
-          style={[
-            styles.jokeText,
-            {
-              fontSize: 16 * textScale,
-              lineHeight: 22 * textScale,
-            },
-            darkMode && { color: "#f3f3f3" },
-          ]}
-        >
-          {item.content}
-        </Text>
+        {item.content_type !== "video" ? (
+          <Text
+            style={[
+              styles.jokeText,
+              {
+                fontSize: 16 * textScale,
+                lineHeight: 22 * textScale,
+              },
+              darkMode && { color: "#f3f3f3" },
+            ]}
+          >
+            {item.content}
+          </Text>
+        ) : null}
 
         <Text
           style={[

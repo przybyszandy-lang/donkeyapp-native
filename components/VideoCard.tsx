@@ -18,6 +18,7 @@ import { useRetryingPlayer } from "./useRetryingPlayer";
 type Props = {
   videoPath: string;
   posterPath?: string | null;
+  description?: string | null;
   active: boolean;
   soundOn: boolean;
   onToggleSound: () => void;
@@ -63,7 +64,7 @@ function ActivePlayer({ uri, soundOn }: { uri: string; soundOn: boolean }) {
   );
 }
 
-function VideoCardInner({ videoPath, posterPath, active, soundOn, onToggleSound, onOpen }: Props) {
+function VideoCardInner({ videoPath, posterPath, description, active, soundOn, onToggleSound, onOpen }: Props) {
   const uri = videoFileUrl(videoPath);
   const posterUri = videoFileUrl(posterPath);
 
@@ -78,6 +79,14 @@ function VideoCardInner({ videoPath, posterPath, active, soundOn, onToggleSound,
       {active ? <ActivePlayer uri={uri} soundOn={soundOn} /> : null}
 
       <Pressable style={StyleSheet.absoluteFill} onPress={onOpen} accessibilityLabel="Open video full screen" />
+
+      {description && description.trim() !== "" ? (
+        <View style={styles.descriptionBar} pointerEvents="none">
+          <Text style={styles.descriptionText} numberOfLines={2}>
+            {description.trim()}
+          </Text>
+        </View>
+      ) : null}
 
       {!active ? (
         <View style={styles.centerOverlay} pointerEvents="none">
@@ -123,6 +132,22 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  descriptionBar: {
+    position: "absolute",
+    left: 0,
+    right: 56,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingTop: 18,
+    paddingBottom: 12,
+  },
+  descriptionText: {
+    color: "#fff",
+    fontSize: 15,
+    lineHeight: 20,
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowRadius: 4,
   },
   soundButton: {
     position: "absolute",

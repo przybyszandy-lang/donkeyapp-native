@@ -13,7 +13,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  DeviceEventEmitter,
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -33,6 +34,7 @@ import {
 import FeedAdSlot from "../../components/FeedAdSlot";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
+import { FAVOURITES_CHANGED_EVENT, VOTES_CHANGED_EVENT } from "../../lib/jokeActions";
 import { supabase } from "../../lib/supabase";
 import {
   ReelVideo,
@@ -422,6 +424,20 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
 
   const isFocused = useIsFocused();
 
+  // Stay in sync with favourites / votes changed inside Reel mode.
+  useEffect(() => {
+    const favSub = DeviceEventEmitter.addListener(FAVOURITES_CHANGED_EVENT, (ids: string[]) =>
+      setFavouriteIds(new Set(ids))
+    );
+    const voteSub = DeviceEventEmitter.addListener(VOTES_CHANGED_EVENT, (next: Record<string, "bad" | "meh" | "good" | "great">) =>
+      setVotesByJokeId(next)
+    );
+    return () => {
+      favSub.remove();
+      voteSub.remove();
+    };
+  }, []);
+
   useEffect(() => {
     if (!isFocused) return;
 
@@ -582,6 +598,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
           <VideoCard
             videoPath={item.video_path}
             posterPath={item.image_path}
+            description={item.content}
             active={
               activeVideoId === item.id &&
               isFocused &&
@@ -602,6 +619,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
                 user_id: item.user_id,
                 display_name: item.display_name,
                 created_at: item.created_at,
+                content: item.content,
               })
             }
           />
@@ -626,18 +644,20 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
             </Text>
           )}
 
-          <Text
-            style={[
-              styles.jokeText,
-              {
-                fontSize: 16 * textScale,
-                lineHeight: 22 * textScale,
-              },
-              darkMode && { color: "#f3f3f3" },
-            ]}
-          >
-            {item.content}
-          </Text>
+          {item.content_type !== "video" ? (
+            <Text
+              style={[
+                styles.jokeText,
+                {
+                  fontSize: 16 * textScale,
+                  lineHeight: 22 * textScale,
+                },
+                darkMode && { color: "#f3f3f3" },
+              ]}
+            >
+              {item.content}
+            </Text>
+          ) : null}
         </>
 
         {item.display_name && item.display_name !== "Anonymous" && item.user_id ? (

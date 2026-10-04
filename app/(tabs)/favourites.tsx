@@ -1,9 +1,10 @@
 // Path: app/(tabs)/favourites.tsx
 
 import { Image } from "expo-image";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  DeviceEventEmitter,
   FlatList,
   Modal,
   Pressable,
@@ -24,6 +25,7 @@ import { router, useFocusEffect } from "expo-router";
 import FeedAdSlot from "../../components/FeedAdSlot";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
+import { FAVOURITES_CHANGED_EVENT } from "../../lib/jokeActions";
 import { supabase } from "../../lib/supabase";
 import {
   ReelVideo,
@@ -67,6 +69,22 @@ export default function FavouritesScreen() {
   const appIsActive = useAppIsActive();
   const isFocused = useIsFocused();
   const { activeVideoId, viewabilityConfig, onViewableItemsChanged } = useMostVisibleVideo();
+
+  // Stay in sync with favourites changed inside Reel mode.
+  const favouriteJokesRef = useRef<JokeRow[]>([]);
+  useEffect(() => {
+    favouriteJokesRef.current = favouriteJokes;
+  }, [favouriteJokes]);
+  useEffect(() => {
+    const favSub = DeviceEventEmitter.addListener(FAVOURITES_CHANGED_EVENT, (ids: string[]) => {
+      setFavouriteIds(ids);
+      const idSet = new Set(ids);
+      setRemovedIds(
+        new Set(favouriteJokesRef.current.filter((j) => !idSet.has(j.id)).map((j) => j.id))
+      );
+    });
+    return () => favSub.remove();
+  }, []);
   const zoomScale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -317,6 +335,7 @@ export default function FavouritesScreen() {
           <VideoCard
             videoPath={item.video_path}
             posterPath={item.image_path}
+            description={item.content}
             active={activeVideoId === item.id && isFocused && appIsActive && !reelStart && !zoomImage}
             soundOn={videoSoundOn}
             onToggleSound={() => setVideoSoundOn(!videoSoundOn)}
@@ -328,23 +347,26 @@ export default function FavouritesScreen() {
                 user_id: item.user_id,
                 display_name: item.display_name,
                 created_at: item.created_at,
+                content: item.content,
               })
             }
           />
         ) : null}
 
-        <Text
-          style={[
-            styles.jokeText,
-            {
-              fontSize: 16 * textScale,
-              lineHeight: 22 * textScale,
-            },
-            darkMode && styles.jokeTextDark,
-          ]}
-        >
-          {item.content}
-        </Text>
+        {item.content_type !== "video" ? (
+          <Text
+            style={[
+              styles.jokeText,
+              {
+                fontSize: 16 * textScale,
+                lineHeight: 22 * textScale,
+              },
+              darkMode && styles.jokeTextDark,
+            ]}
+          >
+            {item.content}
+          </Text>
+        ) : null}
 
         {item.display_name && item.display_name !== "Anonymous" && item.user_id ? (
           <Text

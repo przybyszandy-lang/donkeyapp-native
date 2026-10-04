@@ -120,4 +120,5 @@ export type ReelVideo = {
   user_id?: string | null;
   display_name?: string | null;
   created_at?: string;
+  content?: string | null;
 };

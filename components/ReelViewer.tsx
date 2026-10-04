@@ -6,18 +6,24 @@
 //   next video turns sound back on.
 // - Nothing here reads or writes the phone's Video sound setting.
 //
+// OVERLAY: the description, "Added by", and see-through buttons (favourite,
+// vote, report, share) sit at the bottom. They hide when the video is tapped
+// or after 7 seconds without any touch; a tap brings them back.
+// Press and hold the video to pause; let go to play again.
+//
 // The list starts with the tapped video, then loads more videos page by page
 // from the database function get_reel_videos (independent of the Home feed).
 // Only the video on screen holds a player. Closing Reel removes every player,
 // so no sound can keep playing.
 
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { VideoView } from "expo-video";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  DeviceEventEmitter,
   FlatList,
   Modal,
   NativeScrollEvent,
@@ -31,11 +37,24 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import {
+  castVote,
+  FAVOURITES_CHANGED_EVENT,
+  loadFavouriteIds,
+  loadVotes,
+  reportJoke,
+  shareVideo,
+  toggleFavourite,
+  Vote,
+  voteEmoji,
+  VOTES_CHANGED_EVENT,
+} from "../lib/jokeActions";
 import { supabase } from "../lib/supabase";
 import { ReelVideo, videoFileUrl } from "../lib/video";
 import { useRetryingPlayer } from "./useRetryingPlayer";
 
 const PAGE_SIZE = 10;
+const OVERLAY_HIDE_MS = 7000;
 
 type Props = {
   startVideo: ReelVideo | null;
@@ -71,7 +90,6 @@ function ReelPlayer({
     }
   }, [player, paused]);
 
-
   return (
     <>
       <VideoView
@@ -106,6 +124,20 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
   const [paused, setPaused] = useState(false);
   const [noMore, setNoMore] = useState(false);
 
+  // Overlay (description + buttons)
+  const [overlayVisible, setOverlayVisible] = useState(true);
+  const [voteOpen, setVoteOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdingRef = useRef(false);
+
+  // Same favourites / votes as the rest of the app
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+  const [votes, setVotes] = useState<Record<string, Vote>>({});
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+
   const loadingRef = useRef(false);
   const cursorRef = useRef<{ created_at: string | null; id: string | null }>({
     created_at: null,
@@ -113,6 +145,56 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
   });
 
   const visible = !!startVideo;
+  const current = videos[index];
+
+  const clearHideTimer = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  };
+
+  // Show the overlay and (re)start the 7-second hide timer.
+  const showOverlay = useCallback(() => {
+    clearHideTimer();
+    setOverlayVisible(true);
+    hideTimerRef.current = setTimeout(() => {
+      setOverlayVisible(false);
+      setVoteOpen(false);
+    }, OVERLAY_HIDE_MS);
+  }, []);
+
+  const hideOverlay = () => {
+    clearHideTimer();
+    setOverlayVisible(false);
+    setVoteOpen(false);
+  };
+
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 2200);
+  };
+
+  useEffect(() => () => clearHideTimer(), []);
+
+  // While the vote bubble or report sheet is open, keep the overlay up.
+  useEffect(() => {
+    if (voteOpen || reportOpen) clearHideTimer();
+  }, [voteOpen, reportOpen]);
+
+  // Keep in sync if favourites / votes change elsewhere.
+  useEffect(() => {
+    const favSub = DeviceEventEmitter.addListener(FAVOURITES_CHANGED_EVENT, (ids: string[]) =>
+      setFavouriteIds(new Set(ids))
+    );
+    const voteSub = DeviceEventEmitter.addListener(VOTES_CHANGED_EVENT, (next: Record<string, Vote>) =>
+      setVotes(next)
+    );
+    return () => {
+      favSub.remove();
+      voteSub.remove();
+    };
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || noMore || !startVideo) return;
@@ -152,15 +234,25 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
 
   // Each time Reel opens: start fresh with the tapped video, sound ON.
   useEffect(() => {
-    if (!startVideo) return;
+    if (!startVideo) {
+      clearHideTimer();
+      return;
+    }
 
     setVideos([startVideo]);
     setIndex(0);
     setReelSoundOn(true);
     setPaused(false);
     setNoMore(false);
+    setVoteOpen(false);
+    setReportOpen(false);
+    setReportReason(null);
     cursorRef.current = { created_at: null, id: null };
     loadingRef.current = false;
+    showOverlay();
+
+    loadFavouriteIds().then((ids) => setFavouriteIds(new Set(ids)));
+    loadVotes().then(setVotes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startVideo?.id]);
 
@@ -175,12 +267,42 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
     const newIndex = Math.round(e.nativeEvent.contentOffset.y / height);
     if (newIndex !== index) {
       setIndex(newIndex);
-      // Every new Reel video starts with sound and playing.
+      // Every new Reel video starts with sound and playing, overlay shown.
       setReelSoundOn(true);
       setPaused(false);
+      setReportOpen(false);
+      setReportReason(null);
+      showOverlay();
     }
     if (newIndex >= videos.length - 3) {
       loadMore();
+    }
+  };
+
+  const onTapVideo = () => {
+    if (voteOpen || reportOpen) {
+      setVoteOpen(false);
+      setReportOpen(false);
+      setReportReason(null);
+      showOverlay();
+      return;
+    }
+    if (overlayVisible) {
+      hideOverlay();
+    } else {
+      showOverlay();
+    }
+  };
+
+  const onHoldStart = () => {
+    holdingRef.current = true;
+    setPaused(true);
+  };
+
+  const onHoldEnd = () => {
+    if (holdingRef.current) {
+      holdingRef.current = false;
+      setPaused(false);
     }
   };
 
@@ -188,6 +310,35 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
     if (!video.user_id) return;
     onClose();
     router.push({ pathname: "/profile/[userId]", params: { userId: video.user_id } });
+  };
+
+  const onPressFavourite = async () => {
+    if (!current) return;
+    showOverlay();
+    const next = await toggleFavourite(current.id);
+    setFavouriteIds(new Set(next));
+  };
+
+  const onPressVote = async (vote: Vote) => {
+    if (!current) return;
+    setVoteOpen(false);
+    showOverlay();
+    const ok = await castVote(current.id, vote);
+    if (!ok) showToast("Vote saved locally, but failed to sync.");
+  };
+
+  const onSubmitReport = async () => {
+    if (!current || !reportReason) return;
+    const ok = await reportJoke(current.id, reportReason);
+    if (!ok) {
+      showToast("Report failed. Please try again.");
+      return;
+    }
+    setReportedIds((prev) => new Set(prev).add(current.id));
+    setReportOpen(false);
+    setReportReason(null);
+    showOverlay();
+    showToast("Thank you. Report submitted.");
   };
 
   const renderItem = ({ item, index: itemIndex }: { item: ReelVideo; index: number }) => {
@@ -205,34 +356,28 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
 
         <Pressable
           style={StyleSheet.absoluteFill}
-          onPress={() => setPaused((p) => !p)}
-          accessibilityLabel={paused ? "Play video" : "Pause video"}
+          onPress={onTapVideo}
+          onLongPress={onHoldStart}
+          onPressOut={onHoldEnd}
+          delayLongPress={250}
+          accessibilityLabel="Tap to show or hide buttons, hold to pause"
         />
 
         {isCurrent && paused ? (
           <View style={styles.centerOverlay} pointerEvents="none">
             <View style={styles.playBadge}>
-              <MaterialIcons name="play-arrow" size={44} color="#fff" />
+              <MaterialIcons name="pause" size={40} color="#fff" />
             </View>
-          </View>
-        ) : null}
-
-        {item.display_name ? (
-          <View style={[styles.authorRow, { bottom: insets.bottom + 24 }]} pointerEvents="box-none">
-            <Text style={styles.whiteText}>
-              Added by{" "}
-              <Text
-                style={[styles.whiteText, styles.authorName]}
-                onPress={item.user_id && item.display_name !== "Anonymous" ? () => openProfile(item) : undefined}
-              >
-                {item.display_name}
-              </Text>
-            </Text>
           </View>
         ) : null}
       </View>
     );
   };
+
+  const isFavourite = current ? favouriteIds.has(current.id) : false;
+  const myVote = current ? votes[current.id] : undefined;
+  const isReported = current ? reportedIds.has(current.id) : false;
+  const description = current?.content?.trim() ?? "";
 
   return (
     <Modal
@@ -262,6 +407,135 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
           />
         ) : null}
 
+        {/* Bottom overlay: description, author, see-through buttons */}
+        {overlayVisible && current ? (
+          <View
+            style={[styles.bottomOverlay, { paddingBottom: insets.bottom + 20 }]}
+            pointerEvents="box-none"
+          >
+            {current.display_name ? (
+              <Text style={styles.authorText}>
+                Added by{" "}
+                <Text
+                  style={styles.authorName}
+                  onPress={
+                    current.user_id && current.display_name !== "Anonymous"
+                      ? () => openProfile(current)
+                      : undefined
+                  }
+                >
+                  {current.display_name}
+                </Text>
+              </Text>
+            ) : null}
+
+            {description !== "" ? (
+              <Text style={styles.descriptionText} numberOfLines={3}>
+                {description}
+              </Text>
+            ) : null}
+
+            {voteOpen && !myVote ? (
+              <View style={styles.voteBubble}>
+                {(["bad", "meh", "good", "great"] as Vote[]).map((v) => (
+                  <Pressable key={v} onPress={() => onPressVote(v)} hitSlop={6}>
+                    <Text style={styles.voteBubbleEmoji}>{voteEmoji(v)}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            <View style={styles.actionRow}>
+              <Pressable
+                style={styles.actionButton}
+                onPress={onPressFavourite}
+                accessibilityLabel={isFavourite ? "Remove from favourites" : "Add to favourites"}
+              >
+                <MaterialIcons
+                  name={isFavourite ? "favorite" : "favorite-border"}
+                  size={24}
+                  color={isFavourite ? "#ff5a5a" : "#fff"}
+                />
+              </Pressable>
+
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => {
+                  if (myVote) return;
+                  setVoteOpen((o) => !o);
+                }}
+                accessibilityLabel="Vote"
+              >
+                <Text style={styles.voteText}>{myVote ? voteEmoji(myVote) : "😕😂"}</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => {
+                  if (isReported) return;
+                  setVoteOpen(false);
+                  setReportReason(null);
+                  setReportOpen(true);
+                }}
+                accessibilityLabel="Report"
+              >
+                <MaterialCommunityIcons
+                  name={isReported ? "flag" : "flag-outline"}
+                  size={24}
+                  color={isReported ? "#7db3ff" : "#fff"}
+                />
+              </Pressable>
+
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => {
+                  showOverlay();
+                  shareVideo(current.id);
+                }}
+                accessibilityLabel="Share"
+              >
+                <MaterialIcons name="share" size={24} color="#fff" />
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Report sheet (inside Reel, same reasons as the rest of the app) */}
+        {reportOpen && current ? (
+          <View style={[styles.reportSheet, { paddingBottom: insets.bottom + 16 }]}>
+            <Text style={styles.reportTitle}>Report video</Text>
+            {[
+              { key: "offensive", label: "This video is offensive" },
+              { key: "illegal", label: "This video is clearly illegal" },
+              { key: "other", label: "Other" },
+            ].map((r) => (
+              <Pressable key={r.key} style={styles.reportItem} onPress={() => setReportReason(r.key)}>
+                <Text style={styles.reportItemText}>{r.label}</Text>
+                {reportReason === r.key ? <MaterialIcons name="check" size={20} color="#4caf50" /> : null}
+              </Pressable>
+            ))}
+            <View style={styles.reportButtons}>
+              <Pressable
+                style={[styles.reportButton, !reportReason && styles.reportButtonDisabled]}
+                onPress={onSubmitReport}
+              >
+                <Text style={styles.reportButtonText}>Report</Text>
+              </Pressable>
+              <Pressable
+                style={styles.reportCancel}
+                onPress={() => {
+                  setReportOpen(false);
+                  setReportReason(null);
+                  showOverlay();
+                }}
+              >
+                <Text style={styles.reportButtonText}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Always visible: close and sound */}
         <Pressable
           style={[styles.topButton, { top: insets.top + 12, left: 16 }]}
           onPress={onClose}
@@ -279,6 +553,12 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
         >
           <MaterialIcons name={reelSoundOn ? "volume-up" : "volume-off"} size={26} color="#fff" />
         </Pressable>
+
+        {toast ? (
+          <View style={[styles.toast, { top: insets.top + 70 }]} pointerEvents="none">
+            <Text style={styles.toastText}>{toast}</Text>
+          </View>
+        ) : null}
       </View>
     </Modal>
   );
@@ -312,19 +592,122 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 10,
   },
-  authorRow: {
+  bottomOverlay: {
     position: "absolute",
-    left: 16,
-    right: 80,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    backgroundColor: "rgba(0,0,0,0.25)",
   },
-  whiteText: {
+  authorText: {
     color: "#fff",
-    fontSize: 15,
-    textShadowColor: "rgba(0,0,0,0.6)",
+    fontSize: 14,
+    marginBottom: 6,
+    textShadowColor: "rgba(0,0,0,0.7)",
     textShadowRadius: 4,
   },
   authorName: {
     fontWeight: "700",
+  },
+  descriptionText: {
+    color: "#fff",
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 14,
+    textShadowColor: "rgba(0,0,0,0.7)",
+    textShadowRadius: 4,
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  actionButton: {
+    width: 56,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  voteText: {
+    fontSize: 18,
+  },
+  voteBubble: {
+    flexDirection: "row",
+    alignSelf: "center",
+    gap: 16,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  voteBubbleEmoji: {
+    fontSize: 32,
+  },
+  reportSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#1b1b1b",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    zIndex: 20,
+  },
+  reportTitle: {
+    color: "#f3f3f3",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  reportItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#333",
+  },
+  reportItemText: {
+    color: "#f3f3f3",
+    fontSize: 15,
+  },
+  reportButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  reportButton: {
+    flex: 1,
+    backgroundColor: "#2f71d3",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  reportButtonDisabled: {
+    backgroundColor: "#555",
+  },
+  reportCancel: {
+    flex: 1,
+    backgroundColor: "#2a2a2a",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  reportButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  whiteText: {
+    color: "#fff",
+    fontSize: 15,
   },
   errorDetail: {
     color: "#ccc",
@@ -332,5 +715,18 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingHorizontal: 24,
     textAlign: "center",
+  },
+  toast: {
+    position: "absolute",
+    alignSelf: "center",
+    backgroundColor: "rgba(0,0,0,0.85)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    zIndex: 30,
+  },
+  toastText: {
+    color: "#fff",
+    fontSize: 14,
   },
 });
