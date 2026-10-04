@@ -16,16 +16,16 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
-"android": {
-  "adaptiveIcon": {
-    "backgroundColor": "#0b2a5b",
-    "foregroundImage": "./assets/icon-512.png"
-  },
-  "edgeToEdgeEnabled": true,
-  "predictiveBackGestureEnabled": false,
-  "package": "com.donkeyapp.app",
-  "versionCode": 42
-},
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0b2a5b",
+        "foregroundImage": "./assets/icon-512.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.donkeyapp.app",
+      "versionCode": 42
+    },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
@@ -52,7 +52,8 @@
           "iosAppId": "ca-app-pub-3866370568277471~1621348903",
           "delayAppMeasurementInit": true
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
