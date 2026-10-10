@@ -53,6 +53,7 @@ import {
 } from "../lib/jokeActions";
 import { supabase } from "../lib/supabase";
 import { ReelVideo, videoFileUrl } from "../lib/video";
+import { useWatchTracking } from "../lib/views";
 import ReelAdSlot from "./ReelAdSlot";
 import { useRetryingPlayer } from "./useRetryingPlayer";
 
@@ -76,10 +77,12 @@ type Props = {
 };
 
 function ReelPlayer({
+  jokeId,
   uri,
   soundOn,
   paused,
 }: {
+  jokeId: string;
   uri: string;
   soundOn: boolean;
   paused: boolean;
@@ -94,6 +97,9 @@ function ReelPlayer({
   useEffect(() => {
     player.muted = !soundOn;
   }, [player, soundOn]);
+
+  // View counting: shown, 3 seconds, half way, end.
+  useWatchTracking(player, jokeId, "reel");
 
   useEffect(() => {
     if (paused) {
@@ -428,7 +434,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
           <Image source={{ uri: posterUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
         ) : null}
 
-        {isCurrent && uri ? <ReelPlayer uri={uri} soundOn={reelSoundOn} paused={paused || holding} /> : null}
+        {isCurrent && uri ? <ReelPlayer jokeId={item.id} uri={uri} soundOn={reelSoundOn} paused={paused || holding} /> : null}
 
         <Pressable
           style={StyleSheet.absoluteFill}

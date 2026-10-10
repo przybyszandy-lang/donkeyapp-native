@@ -95,7 +95,7 @@ export default function ProfileScreen() {
   const [videoSoundOn, setVideoSoundOn] = useVideoSoundSetting();
   const appIsActive = useAppIsActive();
   const isFocused = useIsFocused();
-  const { activeVideoId, viewabilityConfig, onViewableItemsChanged } = useMostVisibleVideo();
+  const { activeVideoId, viewabilityConfigCallbackPairs } = useMostVisibleVideo("profile");
 
   // Stay in sync with favourites / votes changed inside Reel mode.
   useEffect(() => {
@@ -578,6 +578,8 @@ export default function ProfileScreen() {
 
         {item.content_type === "video" && item.video_path ? (
           <VideoCard
+            jokeId={item.id}
+            viewSource="profile"
             videoPath={item.video_path}
             posterPath={item.image_path}
             description={item.content}
@@ -855,8 +857,7 @@ export default function ProfileScreen() {
               keyExtractor={(item) => item.id}
               renderItem={renderItem}
               contentContainerStyle={styles.listContent}
-              viewabilityConfig={viewabilityConfig}
-              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
             />
           )}
         </>

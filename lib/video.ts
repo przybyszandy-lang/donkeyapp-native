@@ -12,6 +12,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
 import { AppState, DeviceEventEmitter, ViewToken } from "react-native";
 
+import { IMPRESSION_VIEWABILITY, makeImpressionHandler, ViewSource } from "./views";
+
 export const VIDEO_SOUND_KEY = "donkey:videosound:v1";
 export const VIDEO_SOUND_EVENT = "videoSoundChanged";
 
@@ -86,9 +88,10 @@ export function useAppIsActive(): boolean {
   return active;
 }
 
-// Tracks which video in a list is most visible, so only that one plays.
-// Pass the returned handlers straight to the FlatList.
-export function useMostVisibleVideo() {
+// Tracks which video in a list is most visible, so only that one plays,
+// and counts impressions (see lib/views.ts) for every joke, meme and video.
+// Pass viewabilityConfigCallbackPairs straight to the FlatList.
+export function useMostVisibleVideo(source: ViewSource) {
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   const viewabilityConfig = useRef({
@@ -109,7 +112,15 @@ export function useMostVisibleVideo() {
     }
   ).current;
 
-  return { activeVideoId, viewabilityConfig, onViewableItemsChanged };
+  const viewabilityConfigCallbackPairs = useRef([
+    { viewabilityConfig, onViewableItemsChanged },
+    {
+      viewabilityConfig: IMPRESSION_VIEWABILITY,
+      onViewableItemsChanged: makeImpressionHandler(source),
+    },
+  ]).current;
+
+  return { activeVideoId, viewabilityConfigCallbackPairs };
 }
 
 // The information Reel mode needs to show one video.

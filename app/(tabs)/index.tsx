@@ -119,7 +119,7 @@ export default function HomeScreen() {
   const [reelStart, setReelStart] = useState<ReelVideo | null>(null);
   const [videoSoundOn, setVideoSoundOn] = useVideoSoundSetting();
   const appIsActive = useAppIsActive();
-  const { activeVideoId, viewabilityConfig, onViewableItemsChanged } = useMostVisibleVideo();
+  const { activeVideoId, viewabilityConfigCallbackPairs } = useMostVisibleVideo("home");
 const zoomScale = useSharedValue(1);
 const translateX = useSharedValue(0);
 const translateY = useSharedValue(0);
@@ -596,6 +596,8 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
         {/* Video */}
         {item.content_type === "video" && item.video_path ? (
           <VideoCard
+            jokeId={item.id}
+            viewSource="home"
             videoPath={item.video_path}
             posterPath={item.image_path}
             description={item.content}
@@ -1670,8 +1672,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
         showsVerticalScrollIndicator={false}
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
 removeClippedSubviews={false}
-        viewabilityConfig={viewabilityConfig}
-        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
         onMomentumScrollBegin={() => {
           onEndReachedCalledDuringMomentum.current = false;
         }}

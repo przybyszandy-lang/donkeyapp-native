@@ -68,7 +68,7 @@ export default function FavouritesScreen() {
   const [videoSoundOn, setVideoSoundOn] = useVideoSoundSetting();
   const appIsActive = useAppIsActive();
   const isFocused = useIsFocused();
-  const { activeVideoId, viewabilityConfig, onViewableItemsChanged } = useMostVisibleVideo();
+  const { activeVideoId, viewabilityConfigCallbackPairs } = useMostVisibleVideo("favourites");
 
   // Stay in sync with favourites changed inside Reel mode.
   const favouriteJokesRef = useRef<JokeRow[]>([]);
@@ -333,6 +333,8 @@ export default function FavouritesScreen() {
 
         {item.content_type === "video" && item.video_path ? (
           <VideoCard
+            jokeId={item.id}
+            viewSource="favourites"
             videoPath={item.video_path}
             posterPath={item.image_path}
             description={item.content}
@@ -523,8 +525,7 @@ export default function FavouritesScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
-          viewabilityConfig={viewabilityConfig}
-          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
         />
       )}
 

@@ -13,9 +13,12 @@ import React, { memo, useEffect } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { videoFileUrl } from "../lib/video";
+import { useWatchTracking, ViewSource } from "../lib/views";
 import { useRetryingPlayer } from "./useRetryingPlayer";
 
 type Props = {
+  jokeId: string;
+  viewSource: ViewSource;
   videoPath: string;
   posterPath?: string | null;
   description?: string | null;
@@ -25,7 +28,17 @@ type Props = {
   onOpen: () => void;
 };
 
-function ActivePlayer({ uri, soundOn }: { uri: string; soundOn: boolean }) {
+function ActivePlayer({
+  uri,
+  soundOn,
+  jokeId,
+  viewSource,
+}: {
+  uri: string;
+  soundOn: boolean;
+  jokeId: string;
+  viewSource: ViewSource;
+}) {
   const { player, status, errorMessage } = useRetryingPlayer(uri, (p) => {
     p.loop = true;
     p.muted = !soundOn;
@@ -38,6 +51,9 @@ function ActivePlayer({ uri, soundOn }: { uri: string; soundOn: boolean }) {
     player.muted = !soundOn;
     player.audioMixingMode = soundOn ? "auto" : "mixWithOthers";
   }, [player, soundOn]);
+
+  // View counting: 3 seconds, half way, end.
+  useWatchTracking(player, jokeId, viewSource);
 
 
   return (
@@ -64,7 +80,7 @@ function ActivePlayer({ uri, soundOn }: { uri: string; soundOn: boolean }) {
   );
 }
 
-function VideoCardInner({ videoPath, posterPath, description, active, soundOn, onToggleSound, onOpen }: Props) {
+function VideoCardInner({ jokeId, viewSource, videoPath, posterPath, description, active, soundOn, onToggleSound, onOpen }: Props) {
   const uri = videoFileUrl(videoPath);
   const posterUri = videoFileUrl(posterPath);
 
@@ -76,7 +92,7 @@ function VideoCardInner({ videoPath, posterPath, description, active, soundOn, o
         <Image source={{ uri: posterUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
       ) : null}
 
-      {active ? <ActivePlayer uri={uri} soundOn={soundOn} /> : null}
+      {active ? <ActivePlayer uri={uri} soundOn={soundOn} jokeId={jokeId} viewSource={viewSource} /> : null}
 
       <Pressable style={StyleSheet.absoluteFill} onPress={onOpen} accessibilityLabel="Open video full screen" />
 
