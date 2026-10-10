@@ -22,7 +22,7 @@ import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { VideoView } from "expo-video";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   DeviceEventEmitter,
@@ -53,10 +53,21 @@ import {
 } from "../lib/jokeActions";
 import { supabase } from "../lib/supabase";
 import { ReelVideo, videoFileUrl } from "../lib/video";
+import ReelAdSlot from "./ReelAdSlot";
 import { useRetryingPlayer } from "./useRetryingPlayer";
 
 const PAGE_SIZE = 10;
 const OVERLAY_HIDE_MS = 7000;
+
+// Full-screen ad page after every AD_EVERY videos.
+const ADS_ENABLED = true;
+const AD_EVERY = 5;
+
+type ReelAdItem = { id: string; isAd: true };
+type ReelItem = ReelVideo | ReelAdItem;
+
+const isAdItem = (item: ReelItem | undefined): item is ReelAdItem =>
+  !!item && (item as ReelAdItem).isAd === true;
 
 type Props = {
   startVideo: ReelVideo | null;
@@ -147,8 +158,42 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
     id: null,
   });
 
+  // Ads that failed to load before the user reached them are dropped.
+  const [failedAdIds, setFailedAdIds] = useState<Set<string>>(new Set());
+
+  // Videos with an ad page after every AD_EVERY videos.
+  const items = useMemo<ReelItem[]>(() => {
+    const list: ReelItem[] = [];
+    videos.forEach((v, i) => {
+      list.push(v);
+      if (ADS_ENABLED && (i + 1) % AD_EVERY === 0) {
+        const adId = `ad-${(i + 1) / AD_EVERY}`;
+        if (!failedAdIds.has(adId)) list.push({ id: adId, isAd: true });
+      }
+    });
+    return list;
+  }, [videos, failedAdIds]);
+
+  const itemsRef = useRef<ReelItem[]>([]);
+  const indexRef = useRef(0);
+  useEffect(() => {
+    itemsRef.current = items;
+    indexRef.current = index;
+  }, [items, index]);
+
+  // Only drop an ad page that is still ahead of the user, so the page they
+  // are on never jumps. If they are already on it, it shows "swipe for more".
+  const onAdFailed = useCallback((adId: string) => {
+    const pos = itemsRef.current.findIndex((it) => it.id === adId);
+    if (pos > indexRef.current) {
+      setFailedAdIds((prev) => new Set(prev).add(adId));
+    }
+  }, []);
+
   const visible = !!startVideo;
-  const current = videos[index];
+  const currentItem = items[index];
+  const isAdPage = isAdItem(currentItem);
+  const current: ReelVideo | undefined = isAdPage ? undefined : (currentItem as ReelVideo | undefined);
 
   const clearHideTimer = () => {
     if (hideTimerRef.current) {
@@ -262,6 +307,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
     }
 
     setVideos([startVideo]);
+    setFailedAdIds(new Set());
     setIndex(0);
     setReelSoundOn(true);
     pausedRef.current = false;
@@ -300,7 +346,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
       setReportReason(null);
       showOverlay();
     }
-    if (newIndex >= videos.length - 3) {
+    if (newIndex >= items.length - 3) {
       loadMore();
     }
   };
@@ -359,7 +405,19 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
     showToast("Thank you. Report submitted.");
   };
 
-  const renderItem = ({ item, index: itemIndex }: { item: ReelVideo; index: number }) => {
+  const renderItem = ({ item, index: itemIndex }: { item: ReelItem; index: number }) => {
+    if (isAdItem(item)) {
+      return (
+        <ReelAdSlot
+          width={width}
+          height={height}
+          topInset={insets.top}
+          bottomInset={insets.bottom}
+          onFailed={() => onAdFailed(item.id)}
+        />
+      );
+    }
+
     const uri = videoFileUrl(item.video_path);
     const posterUri = videoFileUrl(item.image_path);
     const isCurrent = itemIndex === index;
@@ -409,7 +467,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
       <View style={styles.screen}>
         {visible ? (
           <FlatList
-            data={videos}
+            data={items}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             pagingEnabled
@@ -421,7 +479,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
             windowSize={3}
             removeClippedSubviews
             decelerationRate="fast"
-            extraData={{ index, reelSoundOn, paused, holding }}
+            extraData={{ index, reelSoundOn, paused, holding, items }}
           />
         ) : null}
 
@@ -554,7 +612,7 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
         ) : null}
 
         {/* Close, sound and play/pause hide and return with the rest of the overlay */}
-        {overlayVisible ? (
+        {overlayVisible || isAdPage ? (
           <>
             <Pressable
               style={[styles.topButton, { top: insets.top + 12, left: 16 }]}
@@ -565,17 +623,19 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
               <MaterialIcons name="close" size={28} color="#fff" />
             </Pressable>
 
-            <Pressable
-              style={[styles.topButton, { top: insets.top + 12, right: 16 }]}
-              onPress={() => {
-                setReelSoundOn((s) => !s);
-                showOverlay();
-              }}
-              hitSlop={12}
-              accessibilityLabel={reelSoundOn ? "Turn sound off" : "Turn sound on"}
-            >
-              <MaterialIcons name={reelSoundOn ? "volume-up" : "volume-off"} size={26} color="#fff" />
-            </Pressable>
+            {!isAdPage ? (
+              <Pressable
+                style={[styles.topButton, { top: insets.top + 12, right: 16 }]}
+                onPress={() => {
+                  setReelSoundOn((s) => !s);
+                  showOverlay();
+                }}
+                hitSlop={12}
+                accessibilityLabel={reelSoundOn ? "Turn sound off" : "Turn sound on"}
+              >
+                <MaterialIcons name={reelSoundOn ? "volume-up" : "volume-off"} size={26} color="#fff" />
+              </Pressable>
+            ) : null}
 
             {current && !reportOpen ? (
               <View style={styles.centerOverlay} pointerEvents="box-none">
