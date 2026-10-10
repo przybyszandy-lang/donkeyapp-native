@@ -192,13 +192,18 @@ begin
     count(*) filter (where v.level = 3)::bigint,
     sum(public.view_points(j.content_type, v.level))::bigint,
     (j.rating_bad_count + j.rating_meh_count + j.rating_good_count + j.rating_great_count)::bigint,
-    j.average
+    -- average rating out of 4 (bad 1, meh 2, good 3, great 4); the old
+    -- "average" column is not kept up to date, so it is worked out here.
+    case when (j.rating_bad_count + j.rating_meh_count + j.rating_good_count + j.rating_great_count) > 0
+      then (j.rating_bad_count * 1 + j.rating_meh_count * 2 + j.rating_good_count * 3 + j.rating_great_count * 4)::double precision
+           / (j.rating_bad_count + j.rating_meh_count + j.rating_good_count + j.rating_great_count)
+    end
   from public.content_views v
   join public.jokes j on j.id = v.joke_id
   left join public.public_profiles pp on pp.id = j.user_id
   where v.day between p_from and p_to
   group by j.id, j.content_type, j.content, j.image_path, j.created_at, j.user_id, pp.display_name,
-           j.rating_bad_count, j.rating_meh_count, j.rating_good_count, j.rating_great_count, j.average
+           j.rating_bad_count, j.rating_meh_count, j.rating_good_count, j.rating_great_count
   order by 12 desc;
 end;
 $$;
@@ -303,7 +308,6 @@ returns table (
   rating_meh   integer,
   rating_good  integer,
   rating_great integer,
-  average      double precision,
   report_count integer
 )
 language plpgsql
@@ -322,7 +326,7 @@ begin
   select j.id, j.content_type, j.content, j.image_path, j.video_path, j.created_at,
          coalesce(nullif(trim(pp.display_name), ''), 'Anonymous'), j.language,
          j.rating_bad_count, j.rating_meh_count, j.rating_good_count, j.rating_great_count,
-         j.average, j.report_count
+         j.report_count
   from public.jokes j
   left join public.public_profiles pp on pp.id = j.user_id
   where j.id = p_joke_id;

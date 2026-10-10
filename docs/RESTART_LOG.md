@@ -3,9 +3,9 @@
 Single source of truth for project state, working rules, environment and latest work.
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
-**Last updated:** 4 Oct 2026 (end of session)
+**Last updated:** 10 Oct 2026
 **Live (store) app:** 2.1.11 build 42 — branch `main`
-**Video test app:** 2.2.0 build 45 prepared (not yet built) — branch `feature/video`
+**Video test app:** 2.2.0 build 45 prepared (not yet built; now also includes Reel ads + view counting) — branch `feature/video`
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
 
 ---
@@ -83,14 +83,17 @@ Tags/branches: `main` = live app. Tag `pre-video-v2.1.11` (commit 041ea70) = sta
 - `app/contact-us.tsx` (contact_messages), `delete-account.tsx` (RPC `soft_delete_my_account`), `privacy/terms/guidelines.tsx`.
 - `components/FeedAdSlot.native.tsx` / `FeedAdSlot.tsx` — native ad / web-safe empty.
 - `components/VideoCard.tsx` — video inside a feed card (4:5 box, poster, description bar, speaker icon; only the active card holds a player).
-- `components/ReelViewer.tsx` — full-screen Reel mode.
+- `components/ReelViewer.tsx` — full-screen Reel mode (ad page after every 5 videos).
+- `components/ReelAdSlot.native.tsx` / `ReelAdSlot.tsx` — full-screen native ad page for Reel (portrait creatives, same ad units) / web-safe empty.
+- `lib/views.ts` — view counting: phone id, batching queue, impression handler, `useWatchTracking` (3 s / 50% / full).
 - `components/useRetryingPlayer.ts` — video player that retries once without cache on error and shows the real error.
 - `lib/video.ts` — Video sound setting, visibility tracking, app-active hook, video URL helper, `ReelVideo` type.
 - `lib/jokeActions.ts` — shared favourite / vote / report / share (same keys + RPCs as screens; emits `favouritesChanged` / `votesChanged`).
 - `lib/supabase.ts` — public publishable key only (safe), AsyncStorage session on native.
 - `supabase/pre-video/functions-backup.sql`, `supabase/video-migration.sql`, `supabase/video-rollback.sql` — database record and undo.
+- `supabase/views-migration.sql` / `views-rollback.sql` — view counting (**not yet run** in Supabase).
 
-**Phone storage keys (AsyncStorage):** `donkey:favourites:v1`, `donkey:votes:v1`, `donkey:language:v1`, `donkey:darkmode:v1`, `donkey:textsize:v1`, `donkey:videosound:v1`, `donkey:language-tutorial-seen:v1`, `donkey:add-joke-language:v1`, `donkey:add-joke-draft:v1`, `donkey:last-submit:v1`, `donkey:submitter-token:v1`.
+**Phone storage keys (AsyncStorage):** `donkey:favourites:v1`, `donkey:votes:v1`, `donkey:language:v1`, `donkey:darkmode:v1`, `donkey:textsize:v1`, `donkey:videosound:v1`, `donkey:language-tutorial-seen:v1`, `donkey:add-joke-language:v1`, `donkey:add-joke-draft:v1`, `donkey:last-submit:v1`, `donkey:submitter-token:v1`, `donkey:device-id:v1` (random phone id for view counting).
 **Events:** `darkModeChanged`, `videoSoundChanged`, `favouritesChanged`, `votesChanged`.
 **Storage URLs:** memes `…/storage/v1/object/public/memes/<image_path>`; videos and video previews `…/storage/v1/object/public/videos/<path>`.
 
@@ -125,6 +128,14 @@ Meme visibility loophole (pre-existing): old feed/recent/favourite/profile funct
 - **Open issue B:** authenticated users can update every column of their own jokes (policy checks only user_id). Via the API a user could self-approve, set content_type 'meme' (loophole) or 'video' pointing at an existing file, or change counts. Cannot upload files.
 - **Agreed:** fix A and B before releasing video (database-only, no app build). First check Add Joke, Edit Joke, My Jokes archive and website anonymous submit so nothing breaks.
 
+### View counting (prepared 10 Oct 2026 — SQL NOT YET RUN)
+- Table `content_views`: one row per day (UTC) + item + phone id, holding the highest level (0 shown, 1 = 3 s, 2 = 50%, 3 = full). Also viewer user, source (home/favourites/profile/reel), platform, app version, `verified` (false; for future Apple/Google genuine-app check). RLS on, no direct access.
+- `record_views(device_id, items, platform, app_version)`: only way in. Checks item visible + unflagged, levels 1–3 only for videos, creators' own views excluded, max 100 per call, max 2000 per phone per day.
+- Points (`view_points`): joke/meme shown = 1; video 3 s = 1, 50% = 3, full = 5 (highest level only, max 5).
+- Admin-only: `get_content_stats(from,to)` (per item, incl. votes + average out of 4 from vote counts — the `average` column is not maintained), `get_views_daily(joke_id or null, from, to)`, `get_content_item(id)`. Creator: `get_my_content_stats(from,to)` (for a future app screen).
+- Business model (MVP, not incorporated yet): gross margin = ad income − direct costs; 70% to creators split by points, 30% Donkey App. Strong anti-fake (App Attest / Play Integrity via Edge Function, held + reviewed payouts) planned before real payouts.
+- Tested on a local Postgres copy (dedupe, upgrades, own-view exclusion, admin-only, rollback).
+
 ### Storage
 - `memes` bucket: public, 5 MB, jpeg/png/webp. Policy "Admins can upload memes" (insert, profiles.is_admin).
 - `videos` bucket: public, 25 MB (Andy's choice; aim < 8 MB), video/mp4 + image/jpeg. Policy "Admins can upload videos". Files: `videos/<timestamp>_<random>.mp4`, previews `posters/<same>.jpg`.
@@ -132,12 +143,13 @@ Meme visibility loophole (pre-existing): old feed/recent/favourite/profile funct
 
 ## 6. Admin portal (repo przybyszandy-lang.github.io, folder donkey-admin)
 
-Email OTP login; access only if profiles.is_admin = true. Pages: index (menu), approve, language, add-meme, **add-video**, messages. Pages generate SQL that Andy runs in the SQL Editor (they do not write to the jokes table themselves).
+Email OTP login; access only if profiles.is_admin = true. Pages: index (menu), approve, language, add-meme, **add-video**, messages, **stats** (10 Oct). Pages generate SQL that Andy runs in the SQL Editor (they do not write to the jokes table themselves).
 - **Add Meme:** uploads images to `memes`; SQL now inserts memes approved (changed 4 Oct).
 - **Add Video:** MP4 only, ≤ 60 s, ≤ 25 MB, browser checks it can play; warns over 8 MB; auto preview picture; optional description per video (max 100 characters); SQL inserts approved video rows (content = description). Owner: Andy's user 1b01e76f-daa9-4c21-822b-2a87d390d9e8.
+- **Stats:** totals, views-over-time chart (Day/Week/Month/Year + series tick boxes), best performing content (type filter, sort), click item → detail (media, votes, average, funnel, all-time/month/today, own chart), creators share, payout calculator, "Show example data" (made-up numbers for showing creators). Needs views-migration.sql.
 - Video prep: HandBrake, preset Fast 720p30, MP4, H.264, target < 8 MB.
 
-Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html`, `joke.html` → rewritten by `vercel.json` to `api/devjoke.js` (shared-link page, understands memes only). Old language pages (french.html etc.) are unused.
+Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html`, `joke.html` → rewritten by `vercel.json` to `api/devjoke.js` (shared-link page; memes and, since 10 Oct, **videos**: player with poster, description, buttons; link preview uses the poster). Old language pages (french.html etc.) are unused.
 
 ## 7. Video feature — decisions and current behaviour
 
@@ -147,7 +159,9 @@ Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html`,
 - **Video sound setting:** phone only (`donkey:videosound:v1`), default OFF, never stored in Supabase. Settings switch and the speaker icon on feed videos change the same value.
 - **Reel mode:** tap a video → full screen, videos only, from `get_reel_videos` (independent of the feed), starts with the tapped video. Every video starts with sound; muting affects only the current video; the next one starts with sound again; never changes the Settings switch. Overlay = close + sound (top), play/pause (centre), "Added by" + description + see-through favourite / vote / report / share (bottom). Overlay hides on tap or after 7 s idle; tap shows it again; while paused it stays up. Centre button pauses until pressed again; holding the video pauses only while held. Closing stops all sound and returns to the same feed position.
 - Feed autoplay muted with small files; if bandwidth runs short, upgrade Supabase to Pro (paid from ad income); tap-to-play is the fallback.
-- Share links for videos open the website, which cannot show videos yet (Phase 13) — deferred until real videos exist.
+- Share links for videos open the website page, which plays the video (done 10 Oct).
+- **Reel ads:** full-screen native ad page after every 5 videos (portrait creatives, "Sponsored", close button only). Ad that fails ahead of the user is skipped; if the user is on it, "Swipe up for more videos".
+- **View counting:** impressions (≥50% visible for 1 s) in Home/Favourites/Profile; videos also 3 s / 50% / full (time actually played) in feed and Reel. Sent in batches every 30 s / 50 items / on background.
 - 5 test videos exist (English, Andy's account, 4 Oct 2026). **Delete them (rows + files) before release.**
 
 ## 8. Video project status
@@ -159,16 +173,16 @@ Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html`,
 | 3 Database + storage | Done (see supabase/video-migration.sql; step 6 = Reel description) |
 | 4 Admin | Done (add-video.html with descriptions, menu tile) |
 | 5–12 App (feed, sound setting, Reel, favourites, profile, voting, reporting, Home) | Done and tested on 2.2.0 (43) and (44); build 45 changes not yet built |
-| 13 Website shared link for videos | Not started (deferred) |
+| 13 Website shared link for videos | Done 10 Oct (live) |
 | 14 Testing | In progress |
 | 15 Release | Not started |
 
 Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker icon, Reel with sound, mute-reset per video, close/home-button stop sound, descriptions, overlay auto-hide, Added by, voting, reporting, favourites (feed + Reel), swipe back (fixed), My Jokes text — all OK.
 
 ### Next steps (in order)
-1. Build **2.2.0 (45)** (already prepared on feature/video) when Andy has collected any further changes; test: X/sound hide with overlay, centre play/pause stays paused, My Jokes memes now "Approved".
-2. Security fix for open issues A and B (database only).
-3. Phase 13: make `api/devjoke.js` show a video (or "watch in the app") for shared video links.
+1. Andy runs `supabase/views-migration.sql` in the SQL Editor (before building, so the app's counts are accepted).
+2. Build **2.2.0 (45)**; test: X/sound hide with overlay, centre play/pause stays paused, My Jokes memes "Approved", Reel ad after 5 videos, admin Stats shows views after ~30 s of use, shared video link on the website.
+3. Security fix for open issues A and B (database only). If column grants are used, include `video_path` (website shared-link page reads it).
 4. Android build and test (also check iPad layout).
 5. Delete the 5 test videos and files; set final version; merge `feature/video` into `main`; tag `video-v<version>`; submit to stores.
 6. Later: decide whether to remove the old non-_v2 functions once most users have updated; optional My Jokes "Video" label; consider removing the meme loophole after the security fix.
@@ -192,7 +206,14 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 - Website: feed-based redesign mirroring the app, favourites, user pages, About page, legal pages, daily refresh, AdSense readiness.
 - 2.0.1 (13) first production release with ads off; later versions up to 2.1.11 (42) are live.
 
-## 11. Session log — 4 Oct 2026
+## 11. Session log — 10 Oct 2026
+
+- Website shared-link page shows videos (live, website `main` d72b2d7).
+- Reel: full-screen ad page every 5 videos (app d34468b).
+- View counting: database SQL + undo (tested locally, not yet run), app counting (5d7c744), admin Stats page with example data (website 3a1380a).
+- Decisions: points 1/1/3/5, highest level only; build 45 waits so ads + views go in one build.
+
+## 12. Session log — 4 Oct 2026
 
 - Created the video master plan; Phase 1 protection; full inspection of app, database, storage, admin and website.
 - Database: video_path column; filters on 3 live functions; videos bucket + admin upload rule; 4 _v2 functions + get_reel_videos (later with description); 164 memes approved.
