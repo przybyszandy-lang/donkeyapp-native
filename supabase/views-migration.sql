@@ -335,3 +335,10 @@ $$;
 
 revoke all on function public.get_content_item(uuid) from public;
 grant execute on function public.get_content_item(uuid) to authenticated;
+
+-- 8. Supabase also grants functions to "anon" directly; signed-out callers
+--    never need the statistics functions (they would only get "Not allowed").
+revoke execute on function public.get_content_stats(date, date) from anon;
+revoke execute on function public.get_views_daily(uuid, date, date) from anon;
+revoke execute on function public.get_content_item(uuid) from anon;
+revoke execute on function public.get_my_content_stats(date, date) from anon;

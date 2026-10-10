@@ -38,7 +38,7 @@ Andy is not a coder. No coding jargon. Never say "add this inside this function"
   - `przybyszandy-lang/donkeyapp-native` (app) — Claude works on branch `feature/video`.
   - `przybyszandy-lang/przybyszandy-lang.github.io` (website + admin) — pushing to `main` publishes live (GitHub Pages + Vercel).
 - Claude writes app code, checks it (`npx tsc --noEmit`, `npx eslint`), commits and pushes. Andy then runs `git pull` in the Codespace and builds.
-- **Supabase connector:** connected. Read-only queries work. Changes (DDL/UPDATE) need an approval Claude cannot give, so Claude prints the SQL and Andy runs it in the Supabase SQL Editor.
+- **Supabase connector:** connected. Read-only queries work. Changes can be applied by Claude with apply_migration (worked 10 Oct); SQL is still saved in the repo with an undo file.
 - Expo network calls are blocked in Claude's workspace: install packages with `EXPO_OFFLINE=1 npx expo install <pkg>`.
 
 ### Build and test routine (Codespace terminal, on the right branch)
@@ -91,7 +91,7 @@ Tags/branches: `main` = live app. Tag `pre-video-v2.1.11` (commit 041ea70) = sta
 - `lib/jokeActions.ts` — shared favourite / vote / report / share (same keys + RPCs as screens; emits `favouritesChanged` / `votesChanged`).
 - `lib/supabase.ts` — public publishable key only (safe), AsyncStorage session on native.
 - `supabase/pre-video/functions-backup.sql`, `supabase/video-migration.sql`, `supabase/video-rollback.sql` — database record and undo.
-- `supabase/views-migration.sql` / `views-rollback.sql` — view counting (**not yet run** in Supabase).
+- `supabase/views-migration.sql` / `views-rollback.sql` — view counting (run in Supabase 10 Oct 2026).
 
 **Phone storage keys (AsyncStorage):** `donkey:favourites:v1`, `donkey:votes:v1`, `donkey:language:v1`, `donkey:darkmode:v1`, `donkey:textsize:v1`, `donkey:videosound:v1`, `donkey:language-tutorial-seen:v1`, `donkey:add-joke-language:v1`, `donkey:add-joke-draft:v1`, `donkey:last-submit:v1`, `donkey:submitter-token:v1`, `donkey:device-id:v1` (random phone id for view counting).
 **Events:** `darkModeChanged`, `videoSoundChanged`, `favouritesChanged`, `votesChanged`.
@@ -128,7 +128,7 @@ Meme visibility loophole (pre-existing): old feed/recent/favourite/profile funct
 - **Open issue B:** authenticated users can update every column of their own jokes (policy checks only user_id). Via the API a user could self-approve, set content_type 'meme' (loophole) or 'video' pointing at an existing file, or change counts. Cannot upload files.
 - **Agreed:** fix A and B before releasing video (database-only, no app build). First check Add Joke, Edit Joke, My Jokes archive and website anonymous submit so nothing breaks.
 
-### View counting (prepared 10 Oct 2026 — SQL NOT YET RUN)
+### View counting (installed in Supabase 10 Oct 2026)
 - Table `content_views`: one row per day (UTC) + item + phone id, holding the highest level (0 shown, 1 = 3 s, 2 = 50%, 3 = full). Also viewer user, source (home/favourites/profile/reel), platform, app version, `verified` (false; for future Apple/Google genuine-app check). RLS on, no direct access.
 - `record_views(device_id, items, platform, app_version)`: only way in. Checks item visible + unflagged, levels 1–3 only for videos, creators' own views excluded, max 100 per call, max 2000 per phone per day.
 - Points (`view_points`): joke/meme shown = 1; video 3 s = 1, 50% = 3, full = 5 (highest level only, max 5).
@@ -180,7 +180,7 @@ Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html`,
 Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker icon, Reel with sound, mute-reset per video, close/home-button stop sound, descriptions, overlay auto-hide, Added by, voting, reporting, favourites (feed + Reel), swipe back (fixed), My Jokes text — all OK.
 
 ### Next steps (in order)
-1. Andy runs `supabase/views-migration.sql` in the SQL Editor (before building, so the app's counts are accepted).
+1. (Done 10 Oct: views-migration.sql applied by Claude via the Supabase connector.)
 2. Build **2.2.0 (45)**; test: X/sound hide with overlay, centre play/pause stays paused, My Jokes memes "Approved", Reel ad after 5 videos, admin Stats shows views after ~30 s of use, shared video link on the website.
 3. Security fix for open issues A and B (database only). If column grants are used, include `video_path` (website shared-link page reads it).
 4. Android build and test (also check iPad layout).
