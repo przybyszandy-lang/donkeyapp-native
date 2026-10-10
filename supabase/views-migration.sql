@@ -400,3 +400,84 @@ $$;
 revoke all on function public.get_points_total(date, date) from public;
 revoke execute on function public.get_points_total(date, date) from anon;
 grant execute on function public.get_points_total(date, date) to authenticated;
+
+-- 10. MVP (10 Oct 2026): creators' OWN views COUNT for now, so statistics can
+--     be filled during testing (all memes/videos belong to Andy).
+--     Before real payouts, run the original record_views() from step 3 again
+--     (it skips own views) together with the planned anti-fake checks.
+create or replace function public.record_views(
+  p_device_id   text,
+  p_items       jsonb,
+  p_platform    text default null,
+  p_app_version text default null
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_today   date := (now() at time zone 'utc')::date;
+  v_used    integer;
+  v_room    integer;
+  v_done    integer := 0;
+begin
+  if p_device_id is null or length(p_device_id) < 16 or length(p_device_id) > 64 then
+    return 0;
+  end if;
+  if p_items is null or jsonb_typeof(p_items) <> 'array'
+     or jsonb_array_length(p_items) = 0 or jsonb_array_length(p_items) > 100 then
+    return 0;
+  end if;
+
+  select count(*) into v_used
+  from public.content_views
+  where day = v_today and device_id = p_device_id;
+  v_room := 2000 - v_used;
+  if v_room <= 0 then
+    return 0;
+  end if;
+
+  begin
+    with raw as (
+      select x.id, x.level, x.source
+      from jsonb_to_recordset(p_items) as x(id uuid, level integer, source text)
+    ),
+    best as (
+      select distinct on (id) id, level, source
+      from raw
+      where id is not null
+        and level between 0 and 3
+        and source in ('home', 'favourites', 'profile', 'reel')
+      order by id, level desc
+    ),
+    valid as (
+      select b.id, b.level::smallint as level, b.source
+      from best b
+      join public.jokes j on j.id = b.id
+      where j.is_visible = true
+        and j.is_flagged = false
+        and (b.level = 0 or j.content_type = 'video')
+      limit v_room
+    )
+    insert into public.content_views
+      (day, joke_id, device_id, viewer_user_id, level, source, platform, app_version)
+    select v_today, v.id, p_device_id, v_uid, v.level, v.source,
+           left(p_platform, 20), left(p_app_version, 20)
+    from valid v
+    on conflict (day, joke_id, device_id) do update
+      set level          = excluded.level,
+          source         = excluded.source,
+          viewer_user_id = coalesce(public.content_views.viewer_user_id, excluded.viewer_user_id),
+          updated_at     = now()
+      where excluded.level > public.content_views.level;
+
+    get diagnostics v_done = row_count;
+  exception when others then
+    return 0;
+  end;
+
+  return v_done;
+end;
+$$;

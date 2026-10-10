@@ -136,6 +136,7 @@ Meme visibility loophole (pre-existing): old feed/recent/favourite/profile funct
 - Admin-only: `get_content_stats(from,to)` (per item, incl. votes + average out of 4 from vote counts — the `average` column is not maintained), `get_views_daily(joke_id or null, from, to)`, `get_content_item(id)`. Creator (app dashboard): `get_my_content_stats(from,to)`, `get_my_views_daily(joke_id or null, from, to)`, `get_points_total(from,to)` (one number, for "your share").
 - Business model (MVP, not incorporated yet): gross margin = ad income − direct costs; 70% to creators split by points, 30% Donkey App. Strong anti-fake (App Attest / Play Integrity via Edge Function, held + reviewed payouts) planned before real payouts.
 - Tested on a local Postgres copy (dedupe, upgrades, own-view exclusion, admin-only, rollback).
+- **MVP change (10 Oct, applied):** creators' own views COUNT for now (step 10 in views-migration.sql) so Andy can fill statistics. Before real payouts: restore the step-3 version (skips own views) + anti-fake checks.
 
 ### Storage
 - `memes` bucket: public, 5 MB, jpeg/png/webp. Policy "Admins can upload memes" (insert, profiles.is_admin).
