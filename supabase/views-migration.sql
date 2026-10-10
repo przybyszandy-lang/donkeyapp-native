@@ -342,3 +342,61 @@ revoke execute on function public.get_content_stats(date, date) from anon;
 revoke execute on function public.get_views_daily(uuid, date, date) from anon;
 revoke execute on function public.get_content_item(uuid) from anon;
 revoke execute on function public.get_my_content_stats(date, date) from anon;
+
+-- 9. Creator dashboard in the app (added 10 Oct 2026).
+--    Day-by-day numbers for the signed-in creator's own content
+--    (p_joke_id = null: all their content; otherwise one of their items).
+create or replace function public.get_my_views_daily(p_joke_id uuid, p_from date, p_to date)
+returns table (
+  day          date,
+  impressions  bigint,
+  views_3s     bigint,
+  views_half   bigint,
+  views_full   bigint,
+  points       bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    v.day,
+    count(*)::bigint,
+    count(*) filter (where v.level >= 1)::bigint,
+    count(*) filter (where v.level >= 2)::bigint,
+    count(*) filter (where v.level = 3)::bigint,
+    sum(public.view_points(j.content_type, v.level))::bigint
+  from public.content_views v
+  join public.jokes j on j.id = v.joke_id
+  where auth.uid() is not null
+    and j.user_id = auth.uid()
+    and v.day between p_from and p_to
+    and (p_joke_id is null or v.joke_id = p_joke_id)
+  group by v.day
+  order by v.day;
+$$;
+
+revoke all on function public.get_my_views_daily(uuid, date, date) from public;
+revoke execute on function public.get_my_views_daily(uuid, date, date) from anon;
+grant execute on function public.get_my_views_daily(uuid, date, date) to authenticated;
+
+--    Total points of ALL content in a period (one number only), so a creator
+--    can see their share of the creators' pool.
+create or replace function public.get_points_total(p_from date, p_to date)
+returns bigint
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(sum(public.view_points(j.content_type, v.level)), 0)::bigint
+  from public.content_views v
+  join public.jokes j on j.id = v.joke_id
+  where auth.uid() is not null
+    and v.day between p_from and p_to;
+$$;
+
+revoke all on function public.get_points_total(date, date) from public;
+revoke execute on function public.get_points_total(date, date) from anon;
+grant execute on function public.get_points_total(date, date) to authenticated;

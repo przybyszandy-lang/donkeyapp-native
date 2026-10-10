@@ -77,7 +77,8 @@ Tags/branches: `main` = live app. Tag `pre-video-v2.1.11` (commit 041ea70) = sta
 - `app/(tabs)/index.tsx` — Home feed. RPC `get_jokes_feed_mixed_v2` (45 rows per load, cursor) + `get_recent_jokes_with_names_mixed_v2` (Recently Added every 3 items). Ads every 6 items (`ADS_ENABLED = true`). Android scroll guard. Menu, search, sign-in modal (email OTP), report modal, meme zoom viewer, videos + Reel.
 - `app/(tabs)/favourites.tsx` — favourites from phone storage, RPC `get_favourite_jokes_with_names_mixed_v2`, ads every 7, videos + Reel.
 - `app/profile/[userId].tsx` — public profile, RPC `get_profile_jokes_with_name_mixed_v2`, ads every 7, videos + Reel.
-- `app/(tabs)/my-jokes.tsx` — own jokes read directly from `jokes` table (50 per page); status Approved / Pending Review / Not Approved; delete or archive.
+- `app/(tabs)/my-jokes.tsx` — creator area (10 Oct): tabs **Dashboard** / **My content**. Own items read from `jokes` (50 per page, incl. content_type, image_path, video_path). Cards show type, status, thumbnail, points/shown/views/votes/rating; filters (All/Jokes/Memes/Videos), sort (Newest/Most points/Most votes); tap → detail. Copy/edit only for jokes; delete or archive as before. Admins see an "Example data" switch (made-up numbers for pitches).
+- `components/creator/` — `CreatorDashboard.tsx` (period, tiles, share of all points, chart with metric chips + Day/Week/Month/Year, watch funnel, top 5, content counts, rules), `ContentDetail.tsx` (full-screen item stats), `ui.tsx` (shared pieces). `components/StatsBarChart.tsx` (bar chart from plain views, no new package). `lib/creatorStats.ts` (loading, grouping, example data).
 - `app/(tabs)/add-joke.tsx`, `edit-joke.tsx` — joke submission/edit (direct table writes, submitter token).
 - `app/(tabs)/settings.tsx` — joke language, **Video sound** switch, dark mode, text size, display name, delete account, legal pages, version text.
 - `app/contact-us.tsx` (contact_messages), `delete-account.tsx` (RPC `soft_delete_my_account`), `privacy/terms/guidelines.tsx`.
@@ -132,7 +133,7 @@ Meme visibility loophole (pre-existing): old feed/recent/favourite/profile funct
 - Table `content_views`: one row per day (UTC) + item + phone id, holding the highest level (0 shown, 1 = 3 s, 2 = 50%, 3 = full). Also viewer user, source (home/favourites/profile/reel), platform, app version, `verified` (false; for future Apple/Google genuine-app check). RLS on, no direct access.
 - `record_views(device_id, items, platform, app_version)`: only way in. Checks item visible + unflagged, levels 1–3 only for videos, creators' own views excluded, max 100 per call, max 2000 per phone per day.
 - Points (`view_points`): joke/meme shown = 1; video 3 s = 1, 50% = 3, full = 5 (highest level only, max 5).
-- Admin-only: `get_content_stats(from,to)` (per item, incl. votes + average out of 4 from vote counts — the `average` column is not maintained), `get_views_daily(joke_id or null, from, to)`, `get_content_item(id)`. Creator: `get_my_content_stats(from,to)` (for a future app screen).
+- Admin-only: `get_content_stats(from,to)` (per item, incl. votes + average out of 4 from vote counts — the `average` column is not maintained), `get_views_daily(joke_id or null, from, to)`, `get_content_item(id)`. Creator (app dashboard): `get_my_content_stats(from,to)`, `get_my_views_daily(joke_id or null, from, to)`, `get_points_total(from,to)` (one number, for "your share").
 - Business model (MVP, not incorporated yet): gross margin = ad income − direct costs; 70% to creators split by points, 30% Donkey App. Strong anti-fake (App Attest / Play Integrity via Edge Function, held + reviewed payouts) planned before real payouts.
 - Tested on a local Postgres copy (dedupe, upgrades, own-view exclusion, admin-only, rollback).
 
@@ -211,7 +212,8 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 - Website shared-link page shows videos (live, website `main` d72b2d7).
 - Reel: full-screen ad page every 5 videos (app d34468b).
 - View counting: database SQL + undo (tested locally, not yet run), app counting (5d7c744), admin Stats page with example data (website 3a1380a).
-- Decisions: points 1/1/3/5, highest level only; build 45 waits so ads + views go in one build.
+- In-app creator dashboard on My Jokes (+ 2 database functions applied via connector).
+- Decisions: points 1/1/3/5, highest level only; build 45 waits so ads + views + dashboard go in one build.
 
 ## 12. Session log — 4 Oct 2026
 
