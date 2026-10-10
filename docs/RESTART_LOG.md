@@ -3,9 +3,9 @@
 Single source of truth for project state, working rules, environment and latest work.
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
-**Last updated:** 10 Oct 2026
+**Last updated:** 10 Oct 2026 (end of session)
 **Live (store) app:** 2.1.11 build 42 — branch `main`
-**Video test app:** 2.2.0 build 45 prepared (not yet built; now also includes Reel ads + view counting) — branch `feature/video`
+**Video test app:** 2.2.0 build 45 prepared (not yet built; includes Reel ads, view counting, creator dashboard) — Andy builds it 11 Oct — branch `feature/video`
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
 
 ---
@@ -182,12 +182,14 @@ Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html`,
 Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker icon, Reel with sound, mute-reset per video, close/home-button stop sound, descriptions, overlay auto-hide, Added by, voting, reporting, favourites (feed + Reel), swipe back (fixed), My Jokes text — all OK.
 
 ### Next steps (in order)
-1. (Done 10 Oct: views-migration.sql applied by Claude via the Supabase connector.)
-2. Build **2.2.0 (45)**; test: X/sound hide with overlay, centre play/pause stays paused, My Jokes memes "Approved", Reel ad after 5 videos, admin Stats shows views after ~30 s of use, shared video link on the website.
+1. Build **2.2.0 (45)** (`git pull`, then build + submit; no `npm install` needed). Database side is already done.
+2. Test on 45: X/sound hide with overlay; centre play/pause stays paused; Reel ad page after 5 videos; My Jokes Dashboard + My content + item Statistics (real numbers ~30 s after viewing; "Example data" switch for pitches); admin Stats page shows the same views; shared video link on the website plays.
+2b. Use the app to fill real statistics (own views count during testing).
 3. Security fix for open issues A and B (database only). If column grants are used, include `video_path` (website shared-link page reads it).
 4. Android build and test (also check iPad layout).
 5. Delete the 5 test videos and files; set final version; merge `feature/video` into `main`; tag `video-v<version>`; submit to stores.
-6. Later: decide whether to remove the old non-_v2 functions once most users have updated; optional My Jokes "Video" label; consider removing the meme loophole after the security fix.
+6. Before real creator payouts: restore own-view exclusion (step 3 record_views), add App Attest / Play Integrity check (Edge Function), held + reviewed payouts, Terms update, accountant advice.
+7. Later: decide whether to remove the old non-_v2 functions once most users have updated; optional My Jokes "Video" label; consider removing the meme loophole after the security fix.
 
 ## 9. Advertising (AdMob)
 
@@ -209,6 +211,8 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 - 2.0.1 (13) first production release with ads off; later versions up to 2.1.11 (42) are live.
 
 ## 11. Session log — 10 Oct 2026
+
+- Main commits: app `feature/video` b7a06f8 (+ this log); website `main` a5a5867.
 
 - Website shared-link page shows videos (live, website `main` d72b2d7).
 - Reel: full-screen ad page every 5 videos (app d34468b).
