@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.donkeyapp.app",
-      "buildNumber": "45",
+      "buildNumber": "46",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -24,7 +24,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.donkeyapp.app",
-      "versionCode": 45
+      "versionCode": 46
     },
     "web": {
       "output": "static",
