@@ -5,7 +5,7 @@ Paste this whole file at the start of a new session. It is also saved in the app
 
 **Last updated:** 10 Oct 2026 (end of session)
 **Live (store) app:** 2.1.11 build 42 — branch `main`
-**Video test app:** 2.2.0 build 45 prepared (not yet built; includes Reel ads, view counting, creator dashboard) — Andy builds it 11 Oct — branch `feature/video`
+**Video test app:** version **3.0.0** (renamed from 2.2.0 on 11 Oct — complete remake), build numbers set automatically by EAS — branch `feature/video`
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
 
 ---
