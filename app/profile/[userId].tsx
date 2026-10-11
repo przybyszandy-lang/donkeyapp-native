@@ -30,9 +30,11 @@ import {
 import { useIsFocused } from "@react-navigation/native";
 
 import FeedAdSlot from "../../components/FeedAdSlot";
+import ProfileHeader, { ProfileTypeFilter } from "../../components/profile/ProfileHeader";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
 import { FAVOURITES_CHANGED_EVENT, VOTES_CHANGED_EVENT } from "../../lib/jokeActions";
+import { fetchPublicProfile, PublicProfile } from "../../lib/profile";
 import { supabase } from "../../lib/supabase";
 import {
   ReelVideo,
@@ -70,6 +72,8 @@ export default function ProfileScreen() {
 
   const [profileName, setProfileName] = useState<string>("User");
   const [jokes, setJokes] = useState<JokeRow[]>([]);
+  const [publicProfile, setPublicProfile] = useState<PublicProfile | null>(null);
+  const [typeFilter, setTypeFilter] = useState<ProfileTypeFilter>("all");
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState<string | null>(null);
 
@@ -142,14 +146,22 @@ export default function ProfileScreen() {
 
   const ADS_ENABLED = true;
 
+  const shownJokes = useMemo(
+    () =>
+      typeFilter === "all"
+        ? jokes
+        : jokes.filter((j) => (j.content_type ?? "joke") === typeFilter),
+    [jokes, typeFilter]
+  );
+
   const finalFeed = useMemo(() => {
     if (!ADS_ENABLED) {
-      return jokes;
+      return shownJokes;
     }
 
     const withAds: JokeRow[] = [];
 
-    jokes.forEach((item, index) => {
+    shownJokes.forEach((item, index) => {
       withAds.push(item);
 
       if ((index + 1) % 7 === 0) {
@@ -166,7 +178,7 @@ export default function ProfileScreen() {
     });
 
     return withAds;
-  }, [jokes]);
+  }, [shownJokes]);
 
   const [fontsLoaded] = useFonts({
     OpenSans_400Regular,
@@ -191,10 +203,14 @@ export default function ProfileScreen() {
       setErrorText(null);
 
       try {
-        const { data: jokesData, error: jokesError } = await supabase.rpc(
-          "get_profile_jokes_with_name_mixed_v2",
-          { p_user_id: userId }
-        );
+        const [{ data: jokesData, error: jokesError }, profileData] = await Promise.all([
+          supabase.rpc("get_profile_jokes_with_name_mixed_v2", { p_user_id: userId }),
+          fetchPublicProfile(userId).catch((e) => {
+            console.log("Failed to load public profile:", e);
+            return null;
+          }),
+        ]);
+        setPublicProfile(profileData);
 
         if (jokesError) {
           throw jokesError;
@@ -820,46 +836,29 @@ export default function ProfileScreen() {
         </View>
       ) : (
         <>
-          <View
-            style={[
-              styles.headerCard,
-              darkMode && {
-                backgroundColor: "#1b1b1b",
-                borderColor: "#333",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.title,
-                darkMode && { color: "#f3f3f3" },
-              ]}
-            >
-              {profileName}
-            </Text>
-            <Text
-              style={[
-                styles.subtitle,
-                darkMode && { color: "#bdbdbd" },
-              ]}
-            >
-              {jokes.length === 1 ? "1 joke" : `${jokes.length} jokes`}
-            </Text>
-          </View>
-
-          {jokes.length === 0 ? (
-            <View style={styles.centerBox}>
-              <Text style={styles.smallNote}>This user has no visible jokes yet.</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={finalFeed}
-              keyExtractor={(item) => item.id}
-              renderItem={renderItem}
-              contentContainerStyle={styles.listContent}
-              viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
-            />
-          )}
+          <FlatList
+            data={finalFeed}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
+            ListHeaderComponent={
+              <ProfileHeader
+                userId={userId}
+                profile={publicProfile}
+                fallbackName={profileName}
+                darkMode={darkMode}
+                textScale={textScale}
+                filter={typeFilter}
+                onFilterChange={setTypeFilter}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.centerBox}>
+                <Text style={styles.smallNote}>Nothing to show here yet.</Text>
+              </View>
+            }
+          />
         </>
       )}
 

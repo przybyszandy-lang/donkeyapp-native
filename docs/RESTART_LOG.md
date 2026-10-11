@@ -77,10 +77,12 @@ Tags/branches: `main` = live app. Tag `pre-video-v2.1.11` (commit 041ea70) = sta
 - `app/(tabs)/index.tsx` — Home feed. RPC `get_jokes_feed_mixed_v2` (45 rows per load, cursor) + `get_recent_jokes_with_names_mixed_v2` (Recently Added every 3 items). Ads every 6 items (`ADS_ENABLED = true`). Android scroll guard. Menu, search, sign-in modal (email OTP), report modal, meme zoom viewer, videos + Reel.
 - `app/(tabs)/favourites.tsx` — favourites from phone storage, RPC `get_favourite_jokes_with_names_mixed_v2`, ads every 7, videos + Reel.
 - `app/profile/[userId].tsx` — public profile, RPC `get_profile_jokes_with_name_mixed_v2`, ads every 7, videos + Reel.
-- `app/(tabs)/my-jokes.tsx` — creator area (10 Oct): tabs **Dashboard** / **My content**. Own items read from `jokes` (50 per page, incl. content_type, image_path, video_path). Cards show type, status, thumbnail, points/shown/views/votes/rating; filters (All/Jokes/Memes/Videos), sort (Newest/Most points/Most votes); tap → detail. Copy/edit only for jokes; delete or archive as before. Admins see an "Example data" switch (made-up numbers for pitches).
+- `app/(tabs)/my-jokes.tsx` — **My Profile** tab (renamed 11 Oct): tabs **Profile** (`components/profile/MyProfileEditor.tsx`: picture, display name, about me, website, view public profile, Delete Account) / **Dashboard** / **Content**. Own items read from `jokes` (50 per page, incl. content_type, image_path, video_path). Cards show type, status, thumbnail, points/shown/views/votes/rating; filters (All/Jokes/Memes/Videos), sort (Newest/Most points/Most votes); tap → detail. Copy/edit only for jokes; delete or archive as before. Admins see an "Example data" switch (made-up numbers for pitches).
 - `components/creator/` — `CreatorDashboard.tsx` (period, tiles, share of all points, chart with metric chips + Day/Week/Month/Year, watch funnel, top 5, content counts, rules), `ContentDetail.tsx` (full-screen item stats), `ui.tsx` (shared pieces). `components/StatsBarChart.tsx` (bar chart from plain views, no new package). `lib/creatorStats.ts` (loading, grouping, example data).
 - `app/(tabs)/add-joke.tsx`, `edit-joke.tsx` — joke submission/edit (direct table writes, submitter token).
-- `app/(tabs)/settings.tsx` — joke language, **Video sound** switch, dark mode, text size, display name, delete account, legal pages, version text.
+- `app/(tabs)/settings.tsx` — joke language, **Video sound** switch, dark mode, text size, legal pages, version (read from the phone). Account items moved to My Profile (11 Oct).
+- `app/profile/[userId].tsx` — public profile: `components/profile/ProfileHeader.tsx` (picture, name, joined, about me first ~100 chars + more, website, Jokes/Memes/Videos/Votes counts, All/Jokes/Memes/Videos switch) scrolls with the list.
+- `lib/profile.ts` — profile helpers, picture upload (square crop, 512 px JPEG, overwrites `avatars/<user id>/avatar.jpg`), website tidy-up. `components/profile/Avatar.tsx` — round picture or coloured initial.
 - `app/contact-us.tsx` (contact_messages), `delete-account.tsx` (RPC `soft_delete_my_account`), `privacy/terms/guidelines.tsx`.
 - `components/FeedAdSlot.native.tsx` / `FeedAdSlot.tsx` — native ad / web-safe empty.
 - `components/VideoCard.tsx` — video inside a feed card (4:5 box, poster, description bar, speaker icon; only the active card holds a player).
@@ -128,6 +130,14 @@ Meme visibility loophole (pre-existing): old feed/recent/favourite/profile funct
 - **Open issue A:** the old log's column hardening is NOT active. anon/authenticated have table-wide SELECT on jokes; `submitter_token` readable on 687 visible rows; `added_by_email` readable but empty on all rows.
 - **Open issue B:** authenticated users can update every column of their own jokes (policy checks only user_id). Via the API a user could self-approve, set content_type 'meme' (loophole) or 'video' pointing at an existing file, or change counts. Cannot upload files.
 - **Agreed:** fix A and B before releasing video (database-only, no app build). First check Add Joke, Edit Joke, My Jokes archive and website anonymous submit so nothing breaks.
+
+### Creator profile (run in Supabase 11 Oct 2026 — `supabase/profile-migration.sql` / `profile-rollback.sql`)
+- profiles: `bio` (≤1000), `website` (≤200, must be http/https), `avatar_updated_at` (null = no picture). Users may update these + display_name.
+- **Security fix:** users can only insert id/email/display_name/created_at/updated_at (before, a new user could create their own profile as admin). Tested.
+- `avatars` bucket: public, 2 MB, JPEG only; each user may only write/replace/delete `<own user id>/avatar.jpg`.
+- `get_public_profile(user_id)`: name, bio, website, avatar_updated_at, joined date, joke/meme/video counts, votes received (deleted accounts return nothing).
+- `soft_delete_my_account` also clears bio/website/picture; app deletes the picture file first.
+- Connector apply_migration was cancelled 3× on 11 Oct; Andy ran the SQL in the SQL Editor instead.
 
 ### View counting (installed in Supabase 10 Oct 2026)
 - Table `content_views`: one row per day (UTC) + item + phone id, holding the highest level (0 shown, 1 = 3 s, 2 = 50%, 3 = full). Also viewer user, source (home/favourites/profile/reel), platform, app version, `verified` (false; for future Apple/Google genuine-app check). RLS on, no direct access.
@@ -214,6 +224,7 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 
 - Add Joke: confirm box (Go Back / Submit) and language picker now centred on screen for long jokes; new "Submit a meme or video" button with Content Creator Agreement / identity message and link to Contact Us (f6fc12a).
 - Build 45 failed on submit (number already used). Fixed for good: EAS raises build numbers automatically; Settings shows the real installed version + build (expo-application, needs `npm install`) (6cae68d). Andy built the next build after that.
+- My Jokes → **My Profile** with Profile tab; Settings account section removed; public profile page with header + type switch; profile pictures (new packages: expo-image-picker, expo-image-manipulator, base64-arraybuffer → `npm install` needed). Not built yet.
 - Home feed jump after ~50 items fixed (84d5a74): Recently Added + ad slots no longer reshuffle above the reader when the next batch loads. **Not built yet — goes in the next build.**
 
 ## 11. Session log — 10 Oct 2026
