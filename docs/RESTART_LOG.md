@@ -18,7 +18,7 @@ Andy is not a coder. No coding jargon. Never say "add this inside this function"
 2. Never guess code, files, database structure, packages, configuration, build path or device setup. Check or ask.
 3. Challenge Andy when he is going the wrong way. Don't just agree.
 4. Do not reopen decisions already made unless Andy asks.
-5. Before any rebuild, raise the version/build number so no two uploads share a number.
+5. Build numbers are counted up automatically by EAS (since 11 Oct 2026). Never trust a "prepared, not built" note: before telling Andy to build, check the last number actually uploaded. Only the version (e.g. 2.2.0) is changed by hand, in `app.json`.
 6. Say clearly whether to save, commit, or both.
 7. Be extremely brief. One sentence, quick decision. Details only if asked.
 8. At session end: short progress log + update this file with only the changes actually made.
@@ -50,7 +50,7 @@ eas build --platform ios --profile production
 eas submit --platform ios --latest     # uploads to TestFlight only, NOT App Store review
 ```
 Then install from the TestFlight app. App Store review submission is done manually in App Store Connect.
-Version/build live in `app.json` (`expo.version`, `ios.buildNumber`, `android.versionCode`) and the text shown in `app/(tabs)/settings.tsx` ("Version" row). `eas.json` has no auto-increment: raise by hand.
+Version (`expo.version` in `app.json`) is set by hand. Build numbers: `eas.json` has `appVersionSource: "remote"` + `autoIncrement` on production, so EAS gives every build a new number (the `ios.buildNumber` / `android.versionCode` in `app.json` are ignored). Settings "Version" row reads the real installed version and build from the phone (expo-application), so it never needs editing. 11 Oct 2026: build 45 failed on submit because 45 was already on App Store Connect.
 
 **Branch warning:** the Codespace is currently on `feature/video`. Any urgent fix for the live app must be made on `main` (`git checkout main`), and never built from `feature/video` by mistake.
 

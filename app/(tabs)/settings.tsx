@@ -1,6 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
+import * as Application from "expo-application";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -471,7 +472,9 @@ useEffect(() => {
 
       <View style={[styles.row, darkRowStyle]}>
         <Text style={[styles.label, darkLabelStyle]}>Version</Text>
-        <Text style={[styles.value, darkValueStyle]}>2.2.0 (46)</Text>
+        <Text style={[styles.value, darkValueStyle]}>
+          {Application.nativeApplicationVersion ?? "?"} ({Application.nativeBuildVersion ?? "?"})
+        </Text>
       </View>
 
       {/* Text size modal */}
