@@ -209,6 +209,7 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 4. Android build and test (also check iPad layout).
 5. Delete the 5 test videos and files; set final version; merge `feature/video` into `main`; tag `video-v<version>`; submit to stores.
 6. Before real creator payouts: restore own-view exclusion (step 3 record_views), add App Attest / Play Integrity check (Edge Function), held + reviewed payouts, Terms update, accountant advice.
+6b. **Smarter feed (planned 11 Oct, not started):** weighted random order instead of the plain 6-hour shuffle. Score per item = (1) quality: votes per time shown (😂 +3, 🙂 +2, 😐 0, 😕 −1), new items start at average; (2) freshness boost fading over a few days; (3) ~1 in 5 slots for new / rarely-seen items (fair chance for new creators); (4) skip items this phone saw recently (content_views); (5) followed creators shown more; (6) variety: not two from same creator in a row, mix of types, reported items down. 1–4 + 6 are database-only (no build, could also help live app); 5 needs build 47+. Gap: favourites live only on phones — send favourite counts to the database later.
 7. Later: decide whether to remove the old non-_v2 functions once most users have updated; optional My Jokes "Video" label; consider removing the meme loophole after the security fix.
 
 ## 9. Advertising (AdMob)
