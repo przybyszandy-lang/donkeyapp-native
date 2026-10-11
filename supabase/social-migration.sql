@@ -255,3 +255,8 @@ begin
   where id = v_user_id;
 end;
 $function$;
+
+-- 8. Tidy-up (added after first run, 11 Oct): Supabase gives new functions to anon by default.
+revoke execute on function public.follow_user(uuid) from anon;
+revoke execute on function public.unfollow_user(uuid) from anon;
+revoke execute on function public.creator_events_limit() from anon, authenticated;

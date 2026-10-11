@@ -34,7 +34,7 @@ import ProfileHeader, { ProfileTypeFilter } from "../../components/profile/Profi
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
 import { FAVOURITES_CHANGED_EVENT, VOTES_CHANGED_EVENT } from "../../lib/jokeActions";
-import { fetchPublicProfile, PublicProfile } from "../../lib/profile";
+import { CreatorEvent, fetchPublicProfile, fetchUserEvents, PublicProfile } from "../../lib/profile";
 import { supabase } from "../../lib/supabase";
 import {
   ReelVideo,
@@ -74,6 +74,7 @@ export default function ProfileScreen() {
   const [jokes, setJokes] = useState<JokeRow[]>([]);
   const [publicProfile, setPublicProfile] = useState<PublicProfile | null>(null);
   const [typeFilter, setTypeFilter] = useState<ProfileTypeFilter>("all");
+  const [events, setEvents] = useState<CreatorEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState<string | null>(null);
 
@@ -211,6 +212,9 @@ export default function ProfileScreen() {
           }),
         ]);
         setPublicProfile(profileData);
+        fetchUserEvents(userId)
+          .then(setEvents)
+          .catch((e) => console.log("Failed to load events:", e));
 
         if (jokesError) {
           throw jokesError;
@@ -851,6 +855,7 @@ export default function ProfileScreen() {
                 textScale={textScale}
                 filter={typeFilter}
                 onFilterChange={setTypeFilter}
+                events={events}
               />
             }
             ListEmptyComponent={

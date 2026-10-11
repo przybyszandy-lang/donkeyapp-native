@@ -32,6 +32,7 @@ import {
 } from "@expo-google-fonts/open-sans";
 
 import FeedAdSlot from "../../components/FeedAdSlot";
+import CardAuthor from "../../components/profile/CardAuthor";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
 import { FAVOURITES_CHANGED_EVENT, VOTES_CHANGED_EVENT } from "../../lib/jokeActions";
@@ -581,6 +582,13 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
           },
         ]}
       >
+        <CardAuthor
+          userId={item.user_id}
+          displayName={item.display_name}
+          darkMode={darkMode}
+          textScale={textScale}
+        />
+
 {/* Meme image */}
 {item.content_type === "meme" && item.image_path ? (
   <Pressable onPress={() => setZoomImage(`https://mknsvxajrvdlwqywvlrf.supabase.co/storage/v1/object/public/memes/${item.image_path}`)}>
@@ -677,41 +685,6 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
           ) : null}
         </>
 
-        {item.display_name && item.display_name !== "Anonymous" && item.user_id ? (
-          <Text
-            style={[
-              styles.addedBy,
-              { fontSize: 13 * textScale },
-              darkMode && { color: "#bdbdbd" },
-            ]}
-          >
-            Added by{" "}
-            <Text
-              style={[
-                styles.addedByLink,
-                darkMode && { color: "#7db3ff" },
-              ]}
-              onPress={() =>
-                router.push({
-                  pathname: "/profile/[userId]",
-                  params: { userId: item.user_id ?? "" },
-                })
-              }
-            >
-              {item.display_name}
-            </Text>
-          </Text>
-        ) : (
-          <Text
-            style={[
-              styles.addedBy,
-              { fontSize: 13 * textScale },
-              darkMode && { color: "#bdbdbd" },
-            ]}
-          >
-            Added by {item.display_name && item.display_name !== "" ? item.display_name : "Anonymous"}
-          </Text>
-        )}
 
 {/* Footer: 5 equal sections */}
         <View

@@ -82,7 +82,8 @@ Tags/branches: `main` = live app. Tag `pre-video-v2.1.11` (commit 041ea70) = sta
 - `app/(tabs)/add-joke.tsx`, `edit-joke.tsx` — joke submission/edit (direct table writes, submitter token).
 - `app/(tabs)/settings.tsx` — joke language, **Video sound** switch, dark mode, text size, legal pages, version (read from the phone). Account items moved to My Profile (11 Oct).
 - `app/profile/[userId].tsx` — public profile: `components/profile/ProfileHeader.tsx` (picture, name, joined, about me first ~100 chars + more, website, Jokes/Memes/Videos/Votes counts, All/Jokes/Memes/Videos switch) scrolls with the list.
-- `lib/profile.ts` — profile helpers, picture upload (square crop, 512 px JPEG, overwrites `avatars/<user id>/avatar.jpg`), website tidy-up. `components/profile/Avatar.tsx` — round picture or coloured initial.
+- Feed cards (Home, Favourites): top row `components/profile/CardAuthor.tsx` = picture + name + Follow (anonymous = blank face, no Follow; own posts no Follow). Replaced the "Added by" line. `lib/follows.ts` = shared follow state + card picture cache. `app/follows.tsx` = Followers / Following list. `components/profile/MyEventsEditor.tsx` = events on My Profile.
+- `lib/profile.ts` — profile helpers (also social links, camera, events), picture upload (square crop, 512 px JPEG, overwrites `avatars/<user id>/avatar.jpg`), website tidy-up. `components/profile/Avatar.tsx` — round picture or coloured initial.
 - `app/contact-us.tsx` (contact_messages), `delete-account.tsx` (RPC `soft_delete_my_account`), `privacy/terms/guidelines.tsx`.
 - `components/FeedAdSlot.native.tsx` / `FeedAdSlot.tsx` — native ad / web-safe empty.
 - `components/VideoCard.tsx` — video inside a feed card (4:5 box, poster, description bar, speaker icon; only the active card holds a player).
@@ -138,6 +139,15 @@ Meme visibility loophole (pre-existing): old feed/recent/favourite/profile funct
 - `get_public_profile(user_id)`: name, bio, website, avatar_updated_at, joined date, joke/meme/video counts, votes received (deleted accounts return nothing).
 - `soft_delete_my_account` also clears bio/website/picture; app deletes the picture file first.
 - Connector apply_migration was cancelled 3× on 11 Oct; Andy ran the SQL in the SQL Editor instead.
+
+### Social: links, followers, events (run in Supabase 11 Oct 2026 — `supabase/social-migration.sql` / `social-rollback.sql`, tested on local Postgres)
+- profiles: `instagram`, `tiktok`, `youtube`, `x_handle`, `facebook` (usernames only, app builds links), `show_followers` / `show_following` (default true; counts always public, lists hidden when off; owner always sees own).
+- `follows` table (follower_id, followee_id): changed only via `follow_user` / `unfollow_user` (signed-in, not self, max 5000); users can read their own follow rows. Lists: `get_followers` / `get_following` (50 per page).
+- `creator_events` (title ≤80, venue, city, starts_at, ticket_url): owner manages own rows; max 30 upcoming; public via `get_user_events` (shown until 6 h after start).
+- `get_profile_cards(ids[])`: profile pictures for feed cards (batched in app).
+- `get_public_profile` now also returns socials, followers/following counts, privacy switches, `i_follow`.
+- Account delete also removes follows, events, socials.
+- **Still to run (optional, 3 lines):** step 8 at the end of social-migration.sql (removes default anon access to follow/unfollow; they already refuse non-signed-in users).
 
 ### View counting (installed in Supabase 10 Oct 2026)
 - Table `content_views`: one row per day (UTC) + item + phone id, holding the highest level (0 shown, 1 = 3 s, 2 = 50%, 3 = full). Also viewer user, source (home/favourites/profile/reel), platform, app version, `verified` (false; for future Apple/Google genuine-app check). RLS on, no direct access.
@@ -225,6 +235,7 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 - Add Joke: confirm box (Go Back / Submit) and language picker now centred on screen for long jokes; new "Submit a meme or video" button with Content Creator Agreement / identity message and link to Contact Us (f6fc12a).
 - Build 45 failed on submit (number already used). Fixed for good: EAS raises build numbers automatically; Settings shows the real installed version + build (expo-application, needs `npm install`) (6cae68d). Andy built the next build after that.
 - My Jokes → **My Profile** with Profile tab; Settings account section removed; public profile page with header + type switch; profile pictures (new packages: expo-image-picker, expo-image-manipulator, base64-arraybuffer → `npm install` needed). Not built yet.
+- Social links, Followers (with privacy switches), Events, card redesign with Follow button, take-or-choose profile photo. New package @react-native-community/datetimepicker. Not built yet.
 - Home feed jump after ~50 items fixed (84d5a74): Recently Added + ad slots no longer reshuffle above the reader when the next batch loads. **Not built yet — goes in the next build.**
 
 ## 11. Session log — 10 Oct 2026

@@ -23,6 +23,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
 
 import FeedAdSlot from "../../components/FeedAdSlot";
+import CardAuthor from "../../components/profile/CardAuthor";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
 import { FAVOURITES_CHANGED_EVENT } from "../../lib/jokeActions";
@@ -308,6 +309,13 @@ export default function FavouritesScreen() {
           isRemoved ? { opacity: 0.45 } : null,
         ]}
       >
+        <CardAuthor
+          userId={item.user_id}
+          displayName={item.display_name}
+          darkMode={darkMode}
+          textScale={textScale}
+        />
+
 {item.content_type === "meme" && item.image_path ? (
           <Pressable onPress={() => setZoomImage(`https://mknsvxajrvdlwqywvlrf.supabase.co/storage/v1/object/public/memes/${item.image_path}`)}>
             <Image
@@ -370,38 +378,6 @@ export default function FavouritesScreen() {
           </Text>
         ) : null}
 
-        {item.display_name && item.display_name !== "Anonymous" && item.user_id ? (
-          <Text
-            style={[
-              styles.addedBy,
-              { fontSize: 13 * textScale },
-              darkMode && styles.addedByDark,
-            ]}
-          >
-            Added by{" "}
-            <Text
-              style={styles.addedByLink}
-              onPress={() =>
-                router.push({
-                  pathname: "/profile/[userId]",
-                  params: { userId: item.user_id ?? "" },
-                })
-              }
-            >
-              {item.display_name}
-            </Text>
-          </Text>
-        ) : (
-          <Text
-            style={[
-              styles.addedBy,
-              { fontSize: 13 * textScale },
-              darkMode && styles.addedByDark,
-            ]}
-          >
-            Added by {item.display_name && item.display_name !== "" ? item.display_name : "Anonymous"}
-          </Text>
-        )}
 
         <View
           style={[

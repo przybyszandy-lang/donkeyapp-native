@@ -58,10 +58,11 @@
         "expo-image-picker",
         {
           "photosPermission": "Donkey App needs access to your photos so you can choose a profile picture.",
-          "cameraPermission": false,
+          "cameraPermission": "Donkey App needs access to your camera so you can take a profile picture.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

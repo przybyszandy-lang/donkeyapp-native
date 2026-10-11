@@ -1,6 +1,6 @@
 // "Profile" tab of My Profile: picture, display name, about me, website,
 // link to the public profile and Delete Account (moved here from Settings).
-import { MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -11,22 +11,28 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { setCachedAvatar } from "../../lib/follows";
 import {
   BIO_MAX,
   fetchMyProfile,
   pickAndUploadAvatar,
   removeAvatar,
+  SocialKey,
+  SOCIALS,
+  tidyHandle,
   tidyWebsite,
   WEBSITE_MAX,
 } from "../../lib/profile";
 import { supabase } from "../../lib/supabase";
 import { palette } from "../creator/ui";
 import Avatar from "./Avatar";
+import MyEventsEditor from "./MyEventsEditor";
 
 const NAME_MAX = 25;
 
@@ -46,10 +52,14 @@ export default function MyProfileEditor({
   const [pictureBusy, setPictureBusy] = useState(false);
 
   const [avatarUpdatedAt, setAvatarUpdatedAt] = useState<string | null>(null);
-  const [saved, setSaved] = useState({ name: "", bio: "", website: "" });
+  const emptySocials: Record<SocialKey, string> = { instagram: "", tiktok: "", youtube: "", x_handle: "", facebook: "" };
+  const [saved, setSaved] = useState({ name: "", bio: "", website: "", socials: emptySocials });
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [website, setWebsite] = useState("");
+  const [socials, setSocials] = useState<Record<SocialKey, string>>(emptySocials);
+  const [showFollowers, setShowFollowers] = useState(true);
+  const [showFollowing, setShowFollowing] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,11 +68,21 @@ export default function MyProfileEditor({
         setLoading(true);
         const profile = await fetchMyProfile(userId);
         if (cancelled) return;
+        const loadedSocials: Record<SocialKey, string> = {
+          instagram: profile.instagram,
+          tiktok: profile.tiktok,
+          youtube: profile.youtube,
+          x_handle: profile.x_handle,
+          facebook: profile.facebook,
+        };
         setAvatarUpdatedAt(profile.avatar_updated_at);
-        setSaved({ name: profile.display_name, bio: profile.bio, website: profile.website });
+        setSaved({ name: profile.display_name, bio: profile.bio, website: profile.website, socials: loadedSocials });
         setName(profile.display_name);
         setBio(profile.bio);
         setWebsite(profile.website);
+        setSocials(loadedSocials);
+        setShowFollowers(profile.show_followers);
+        setShowFollowing(profile.show_following);
       } catch (e) {
         console.log("Failed to load my profile:", e);
       } finally {
@@ -74,13 +94,42 @@ export default function MyProfileEditor({
     };
   }, [userId]);
 
-  const changed = name !== saved.name || bio !== saved.bio || website !== saved.website;
+  const changed =
+    name !== saved.name ||
+    bio !== saved.bio ||
+    website !== saved.website ||
+    SOCIALS.some((x) => socials[x.key] !== saved.socials[x.key]);
 
-  const onChangePicture = async () => {
+  const savePrivacy = async (field: "show_followers" | "show_following", value: boolean) => {
+    const setter = field === "show_followers" ? setShowFollowers : setShowFollowing;
+    setter(value);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ [field]: value, updated_at: new Date().toISOString() })
+      .eq("id", userId);
+    if (error) {
+      console.log("Privacy save failed:", error);
+      setter(!value);
+      Alert.alert("Error", "Could not save this setting. Please try again.");
+    }
+  };
+
+  const onChangePicture = () => {
+    Alert.alert("Profile picture", undefined, [
+      { text: "Take photo", onPress: () => uploadPicture("camera") },
+      { text: "Choose from library", onPress: () => uploadPicture("library") },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const uploadPicture = async (source: "camera" | "library") => {
     try {
       setPictureBusy(true);
-      const updatedAt = await pickAndUploadAvatar(userId);
-      if (updatedAt) setAvatarUpdatedAt(updatedAt);
+      const updatedAt = await pickAndUploadAvatar(userId, source);
+      if (updatedAt) {
+        setAvatarUpdatedAt(updatedAt);
+        setCachedAvatar(userId, updatedAt);
+      }
     } catch (e: any) {
       console.log("Profile picture upload failed:", e);
       Alert.alert("Profile picture", e?.message ?? "Could not upload the picture. Please try again.");
@@ -100,6 +149,7 @@ export default function MyProfileEditor({
             setPictureBusy(true);
             await removeAvatar(userId);
             setAvatarUpdatedAt(null);
+            setCachedAvatar(userId, null);
           } catch (e: any) {
             console.log("Remove picture failed:", e);
             Alert.alert("Profile picture", "Could not remove the picture. Please try again.");
@@ -123,6 +173,17 @@ export default function MyProfileEditor({
       Alert.alert("Website", site.error);
       return;
     }
+    const cleanSocials = { ...emptySocials };
+    const socialValues: Record<string, string | null> = {};
+    for (const x of SOCIALS) {
+      const r = tidyHandle(x.key, socials[x.key]);
+      if (r.error) {
+        Alert.alert(x.label, r.error);
+        return;
+      }
+      cleanSocials[x.key] = r.value ?? "";
+      socialValues[x.key] = r.value;
+    }
 
     try {
       setSaving(true);
@@ -132,16 +193,18 @@ export default function MyProfileEditor({
           display_name: cleanName,
           bio: cleanBio || null,
           website: site.value,
+          ...socialValues,
           updated_at: new Date().toISOString(),
         })
         .eq("id", userId);
       if (error) throw error;
 
-      const next = { name: cleanName, bio: cleanBio, website: site.value ?? "" };
+      const next = { name: cleanName, bio: cleanBio, website: site.value ?? "", socials: cleanSocials };
       setSaved(next);
       setName(next.name);
       setBio(next.bio);
       setWebsite(next.website);
+      setSocials(cleanSocials);
       Alert.alert("Saved", "Your profile has been updated.");
     } catch (e: any) {
       console.log("Save profile failed:", e);
@@ -252,6 +315,26 @@ export default function MyProfileEditor({
             placeholderTextColor={p.muted}
           />
 
+          <Text style={[label, styles.spaced]}>Social media</Text>
+          <Text style={[hint, styles.hintTop]}>Username or link. Only the ones you fill in are shown.</Text>
+          {SOCIALS.map((x) => (
+            <View key={x.key} style={styles.socialInputRow}>
+              <View style={[styles.socialIcon, { backgroundColor: p.soft }]}>
+                <FontAwesome6 name={x.icon} brand size={16} color={p.text} />
+              </View>
+              <TextInput
+                style={[input, styles.flex]}
+                value={socials[x.key]}
+                onChangeText={(v) => setSocials((prev) => ({ ...prev, [x.key]: v }))}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={120}
+                placeholder={`${x.label} username`}
+                placeholderTextColor={p.muted}
+              />
+            </View>
+          ))}
+
           <Pressable
             style={[styles.saveButton, { backgroundColor: changed && !saving ? "#2e7d32" : "#9e9e9e" }]}
             onPress={onSave}
@@ -262,6 +345,27 @@ export default function MyProfileEditor({
             </Text>
           </Pressable>
         </View>
+
+        {/* Followers privacy */}
+        <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }]}>
+          <Text style={[label, { marginBottom: 2 }]}>Privacy</Text>
+          <View style={styles.switchRow}>
+            <Text style={[styles.switchLabel, { color: p.text, fontSize: 14 * textScale }]}>
+              Others can see who follows me
+            </Text>
+            <Switch value={showFollowers} onValueChange={(v) => savePrivacy("show_followers", v)} />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={[styles.switchLabel, { color: p.text, fontSize: 14 * textScale }]}>
+              Others can see who I follow
+            </Text>
+            <Switch value={showFollowing} onValueChange={(v) => savePrivacy("show_following", v)} />
+          </View>
+          <Text style={hint}>The number of followers is always shown.</Text>
+        </View>
+
+        {/* Events */}
+        <MyEventsEditor darkMode={darkMode} textScale={textScale} />
 
         {/* Public profile */}
         <Pressable
@@ -337,6 +441,31 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   spaced: { marginTop: 14 },
+  hintTop: { marginTop: 0, marginBottom: 8 },
+  socialInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  socialIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    gap: 12,
+  },
+  switchLabel: {
+    flex: 1,
+    fontFamily: "OpenSans_400Regular",
+  },
   input: {
     borderWidth: 1,
     borderRadius: 10,

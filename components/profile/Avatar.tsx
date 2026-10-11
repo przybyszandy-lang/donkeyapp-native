@@ -1,4 +1,5 @@
 // Round profile picture. Falls back to the first letter of the name when there is no picture.
+import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -27,6 +28,15 @@ export default function Avatar({
   localUri?: string | null;
 }) {
   const uri = localUri ?? avatarUrl(userId, updatedAt);
+
+  // Anonymous posts: blank face.
+  if (!userId && !uri) {
+    return (
+      <View style={[{ width: size, height: size, borderRadius: size / 2 }, styles.letterBox, styles.anonymous]}>
+        <MaterialIcons name="person" size={size * 0.7} color="#ffffff" />
+      </View>
+    );
+  }
   const letter = (name ?? "").trim().charAt(0).toUpperCase() || "?";
   const box = { width: size, height: size, borderRadius: size / 2 };
 
@@ -53,6 +63,9 @@ export default function Avatar({
 const styles = StyleSheet.create({
   image: {
     backgroundColor: "#ddd",
+  },
+  anonymous: {
+    backgroundColor: "#b0b4ba",
   },
   letterBox: {
     alignItems: "center",
