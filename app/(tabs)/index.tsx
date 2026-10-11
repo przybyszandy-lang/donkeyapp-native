@@ -60,7 +60,8 @@ type JokeRow = {
 
 export default function HomeScreen() {
   const [recentJokes, setRecentJokes] = useState<JokeRow[]>([]);
-  const [jokes, setJokes] = useState<JokeRow[]>([]);
+  // Each loaded batch is kept separately so new batches only add to the end of the feed
+  const [jokePages, setJokePages] = useState<JokeRow[][]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -152,40 +153,52 @@ const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
   const ADS_ENABLED = true;
 
+  // Builds the feed batch by batch. Earlier batches never change when a new one
+  // arrives, so the list does not jump while scrolling.
   const finalFeed = useMemo(() => {
-    const recentCount = Math.min(
-      Math.floor(jokes.length / 4),
-      recentJokes.length
-    );
-
-    const recentPool = recentJokes
-      .slice(0, recentCount)
-      .map((item) => ({
-        ...item,
-        isRecentlyAdded: true,
-      }));
-
-    const recentIds = new Set(recentPool.map((item) => item.id));
-    const normalPool = jokes.filter((item) => !recentIds.has(item.id));
-
+    const shownIds = new Set<string>();
+    const usedRecentIds = new Set<string>();
+    let recentPointer = 0;
     const mixed: JokeRow[] = [];
-    let normalIndex = 0;
-    let recentIndex = 0;
 
-    while (normalIndex < normalPool.length) {
-      mixed.push(normalPool[normalIndex]);
-      normalIndex += 1;
+    jokePages.forEach((page) => {
+      // Recently Added items for this batch (about 1 per 4 items)
+      const wanted = Math.floor(page.length / 4);
+      const recentPool: JokeRow[] = [];
+      while (recentPool.length < wanted && recentPointer < recentJokes.length) {
+        const candidate = recentJokes[recentPointer];
+        recentPointer += 1;
+        if (shownIds.has(candidate.id) || usedRecentIds.has(candidate.id)) continue;
+        usedRecentIds.add(candidate.id);
+        recentPool.push({ ...candidate, isRecentlyAdded: true });
+      }
 
-      if (normalIndex % 3 === 0 && recentIndex < recentPool.length) {
+      const recentIds = new Set(recentPool.map((item) => item.id));
+      const normalPool = page.filter(
+        (item) => !recentIds.has(item.id) && !shownIds.has(item.id) && !usedRecentIds.has(item.id)
+      );
+
+      let normalIndex = 0;
+      let recentIndex = 0;
+
+      while (normalIndex < normalPool.length) {
+        mixed.push(normalPool[normalIndex]);
+        shownIds.add(normalPool[normalIndex].id);
+        normalIndex += 1;
+
+        if (normalIndex % 3 === 0 && recentIndex < recentPool.length) {
+          mixed.push(recentPool[recentIndex]);
+          shownIds.add(recentPool[recentIndex].id);
+          recentIndex += 1;
+        }
+      }
+
+      while (recentIndex < recentPool.length) {
         mixed.push(recentPool[recentIndex]);
+        shownIds.add(recentPool[recentIndex].id);
         recentIndex += 1;
       }
-    }
-
-    while (recentIndex < recentPool.length) {
-      mixed.push(recentPool[recentIndex]);
-      recentIndex += 1;
-    }
+    });
 
     if (!ADS_ENABLED) {
       return mixed;
@@ -211,7 +224,7 @@ const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
     });
 
     return withAds;
-  }, [jokes, recentJokes, ADS_ENABLED]);
+  }, [jokePages, recentJokes, ADS_ENABLED]);
 
   const knownIds = useMemo(() => new Set<string>(), []);
   const addToKnownIds = (rows: JokeRow[]) => {
@@ -275,7 +288,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
     }
 
     setSearchQuery(cleanSearch);
-    setJokes([]);
+    setJokePages([]);
     setCursorCreatedAt(null);
     setCursorId(null);
   };
@@ -299,7 +312,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
 
       knownIds.clear();
       addToKnownIds(rows);
-      setJokes(rows);
+      setJokePages([rows]);
       await loadRecentJokes();
 
       const last = rows[rows.length - 1];
@@ -335,7 +348,9 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
       const rows = rowsRaw.filter((r) => !knownIds.has(r.id));
 
       addToKnownIds(rows);
-      setJokes((prev: JokeRow[]) => [...prev, ...rows]);
+      if (rows.length > 0) {
+        setJokePages((prev: JokeRow[][]) => [...prev, rows]);
+      }
 
       const last = rowsRaw[rowsRaw.length - 1];
       setCursorCreatedAt(last ? last.created_at : null);
