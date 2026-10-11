@@ -210,6 +210,12 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 - Website: feed-based redesign mirroring the app, favourites, user pages, About page, legal pages, daily refresh, AdSense readiness.
 - 2.0.1 (13) first production release with ads off; later versions up to 2.1.11 (42) are live.
 
+## 11a. Session log — 11 Oct 2026
+
+- Add Joke: confirm box (Go Back / Submit) and language picker now centred on screen for long jokes; new "Submit a meme or video" button with Content Creator Agreement / identity message and link to Contact Us (f6fc12a).
+- Build 45 failed on submit (number already used). Fixed for good: EAS raises build numbers automatically; Settings shows the real installed version + build (expo-application, needs `npm install`) (6cae68d). Andy built the next build after that.
+- Home feed jump after ~50 items fixed (84d5a74): Recently Added + ad slots no longer reshuffle above the reader when the next batch loads. **Not built yet — goes in the next build.**
+
 ## 11. Session log — 10 Oct 2026
 
 - Main commits: app `feature/video` b7a06f8 (+ this log); website `main` a5a5867.
