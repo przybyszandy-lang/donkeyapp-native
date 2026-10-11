@@ -71,6 +71,9 @@ export default function DeleteAccountScreen() {
         return;
       }
 
+      // Remove the profile picture file (if any). Ignore errors: deleting the account matters more.
+      await supabase.storage.from("avatars").remove([`${user.id}/avatar.jpg`]).catch(() => null);
+
       const { error } = await supabase.rpc("soft_delete_my_account");
 
       if (error) {

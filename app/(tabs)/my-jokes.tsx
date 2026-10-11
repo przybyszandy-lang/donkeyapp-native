@@ -26,6 +26,7 @@ import {
 
 import ContentDetail from "../../components/creator/ContentDetail";
 import CreatorDashboard, { Thumb } from "../../components/creator/CreatorDashboard";
+import MyProfileEditor from "../../components/profile/MyProfileEditor";
 import {
   MyContentRow,
   palette,
@@ -76,7 +77,7 @@ export default function MyJokesScreen() {
   const [jokePendingDelete, setJokePendingDelete] = useState<MyJokeRow | null>(null);
 
   // Dashboard
-  const [tab, setTab] = useState<"dashboard" | "content">("dashboard");
+  const [tab, setTab] = useState<"profile" | "dashboard" | "content">("profile");
   const [typeFilter, setTypeFilter] = useState<"all" | "joke" | "meme" | "video">("all");
   const [sortBy, setSortBy] = useState<"newest" | "points" | "votes">("newest");
   const [itemStats, setItemStats] = useState<Map<string, ItemStats>>(new Map());
@@ -597,7 +598,7 @@ export default function MyJokesScreen() {
             darkMode && styles.titleDark,
           ]}
         >
-          My Jokes
+          My Profile
         </Text>
 
         <Text
@@ -607,7 +608,7 @@ export default function MyJokesScreen() {
             darkMode && styles.emptyTextDark,
           ]}
         >
-          Please sign in to see your jokes.
+          Please sign in to see your profile, statistics and content.
         </Text>
       </View>
     );
@@ -649,9 +650,9 @@ export default function MyJokesScreen() {
             darkMode && styles.titleDark,
           ]}
         >
-          My Jokes
+          My Profile
         </Text>
-        {isAdmin ? (
+        {isAdmin && tab === "dashboard" ? (
           <View style={styles.demoSwitch}>
             <Text style={[styles.demoSwitchText, darkMode && styles.smallNoteDark]}>Example data</Text>
             <Switch value={demo} onValueChange={setDemo} />
@@ -665,13 +666,14 @@ export default function MyJokesScreen() {
           value={tab}
           onChange={setTab}
           options={[
+            { value: "profile", label: "Profile" },
             { value: "dashboard", label: "Dashboard" },
-            { value: "content", label: `My content (${jokes.length}${hasMore ? "+" : ""})` },
+            { value: "content", label: `Content (${jokes.length}${hasMore ? "+" : ""})` },
           ]}
         />
       </View>
 
-      {errorText ? (
+      {errorText && tab !== "profile" ? (
         <View
           style={[
             styles.errorBanner,
@@ -701,7 +703,9 @@ export default function MyJokesScreen() {
         </View>
       ) : null}
 
-      {tab === "dashboard" ? (
+      {tab === "profile" ? (
+        <MyProfileEditor userId={currentUserId} darkMode={darkMode} textScale={textScale} />
+      ) : tab === "dashboard" ? (
         jokes.length === 0 && !demo ? (
           <Text
             style={[

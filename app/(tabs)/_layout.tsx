@@ -79,7 +79,7 @@ useEffect(() => {
       <Tabs.Screen
         name="my-jokes"
         options={{
-          title: "My Jokes",
+          title: "My Profile",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="person" color={color} size={size} />
           ),

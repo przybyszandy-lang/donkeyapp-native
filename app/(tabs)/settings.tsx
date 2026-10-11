@@ -5,7 +5,6 @@ import * as Application from "expo-application";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   DeviceEventEmitter,
   FlatList,
   Image,
@@ -15,11 +14,9 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
-import { supabase } from "../../lib/supabase";
 import { useVideoSoundSetting } from "../../lib/video";
 
 // ------------------------------
@@ -51,7 +48,6 @@ type JokeLanguageOption =
 // ------------------------------
 // Storage keys
 // ------------------------------
-const DISPLAY_NAME_MAX = 25;
 const DARK_MODE_KEY = "donkey:darkmode:v1";
 const TEXT_SIZE_KEY = "donkey:textsize:v1";
 const LANGUAGE_KEY = "donkey:language:v1";
@@ -92,15 +88,10 @@ export default function SettingsScreen() {
   // ------------------------------
   const [textSizeModalOpen, setTextSizeModalOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
-  const [displayNameModalOpen, setDisplayNameModalOpen] = useState(false);
 
   // ------------------------------
   // User state
   // ------------------------------
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [displayNameDraft, setDisplayNameDraft] = useState("");
-  const [savingDisplayName, setSavingDisplayName] = useState(false);
 
   // ------------------------------
   // Draft state for modals
@@ -119,10 +110,6 @@ export default function SettingsScreen() {
   // Load saved settings + profile
   // ------------------------------
 useEffect(() => {
-  const { data: listener } = supabase.auth.onAuthStateChange(() => {
-    loadUserProfile();
-  });
-
   (async () => {
     try {
       const rawLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
@@ -147,45 +134,8 @@ useEffect(() => {
       console.log("Failed to load saved settings:", e);
     }
 
-    await loadUserProfile();
   })();
-
-  return () => {
-    listener?.subscription.unsubscribe();
-  };
 }, [isFocused]);
-
-  // ------------------------------
-  // Load current user's profile
-  // ------------------------------
-  const loadUserProfile = async () => {
-    try {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-
-      setCurrentUserId(user?.id ?? null);
-
-      if (!user?.id) {
-        setDisplayName("");
-        setDisplayNameDraft("");
-        return;
-      }
-
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      const name = profile?.display_name?.trim() ?? "";
-      setDisplayName(name);
-      setDisplayNameDraft(name);
-    } catch (e) {
-      console.log("Failed to load profile:", e);
-    }
-  };
 
   // ------------------------------
   // Modal open helpers
@@ -209,78 +159,6 @@ useEffect(() => {
         });
       }
     }, 50);
-  };
-
-  const openDisplayNameModal = () => {
-    if (!currentUserId) {
-      Alert.alert(
-        "Sign in required",
-        "Please sign in to change your display name."
-      );
-      return;
-    }
-
-    setDisplayNameDraft(displayName);
-    setDisplayNameModalOpen(true);
-  };
-
-  // ------------------------------
-  // Save display name
-  // ------------------------------
-  const saveDisplayName = async () => {
-    const cleanName = displayNameDraft.trim();
-
-    if (cleanName === displayName) {
-      setDisplayNameModalOpen(false);
-      return;
-    }
-
-    if (cleanName.length < 1) {
-      Alert.alert(
-        "Display name required",
-        "Please enter at least 1 character."
-      );
-      return;
-    }
-
-    if (!currentUserId) {
-      Alert.alert(
-        "Sign in required",
-        "Please sign in to change your display name."
-      );
-      return;
-    }
-
-    try {
-      setSavingDisplayName(true);
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          display_name: cleanName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", currentUserId);
-
-      if (error) throw error;
-
-      setDisplayName(cleanName);
-      setDisplayNameDraft(cleanName);
-      setDisplayNameModalOpen(false);
-    } catch (e: any) {
-      console.log("Failed to save display name:", e);
-
-      if (e?.code === "23505") {
-        Alert.alert(
-          "Display name unavailable",
-          "This display name is already in use. Please choose another one."
-        );
-      } else {
-        Alert.alert("Error", "Failed to save display name.");
-      }
-    } finally {
-      setSavingDisplayName(false);
-    }
   };
 
   // ------------------------------
@@ -376,46 +254,6 @@ useEffect(() => {
         <Text style={[styles.label, darkLabelStyle]}>Text size</Text>
         <Text style={[styles.value, darkValueStyle]}>{textSize}</Text>
       </Pressable>
-
-      {/* Account */}
-      <Text style={[styles.section, darkSectionStyle]}>Account</Text>
-
-      <Pressable
-        style={[styles.row, darkRowStyle]}
-        onPress={openDisplayNameModal}
-      >
-        <Text style={[styles.label, darkLabelStyle]}>Display name</Text>
-        <Text style={[styles.value, darkValueStyle]}>
-          {currentUserId ? displayName || "Not set" : "Sign in required"}
-        </Text>
-      </Pressable>
-
-      {currentUserId && (
-        <Pressable
-          style={[
-            styles.deleteAccountRow,
-            darkMode && {
-              backgroundColor: "#2a1515",
-              borderColor: "#6b2a2a",
-            },
-          ]}
-          onPress={() => router.push("/delete-account")}
-        >
-          <Text
-            style={[
-              styles.deleteAccountLabel,
-              darkMode && { color: "#ff8a8a" },
-            ]}
-          >
-            Delete Account
-          </Text>
-          <MaterialIcons
-            name="chevron-right"
-            size={20}
-            color={darkMode ? "#ff8a8a" : "#ffffff"}
-          />
-        </Pressable>
-      )}
 
       {/* App */}
       <Text style={[styles.section, darkSectionStyle]}>App</Text>
@@ -587,103 +425,6 @@ useEffect(() => {
                 }}
               >
                 <Text style={styles.modalSaveText}>Save</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Display name modal */}
-      <Modal visible={displayNameModalOpen} transparent animationType="fade">
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setDisplayNameModalOpen(false)}
-        >
-          <Pressable
-            style={[
-              styles.modalSheet,
-              darkMode && {
-                backgroundColor: "#1b1b1b",
-                borderColor: "#333",
-              },
-            ]}
-            onPress={() => {}}
-          >
-            <Text
-              style={[
-                styles.modalTitle,
-                darkMode && { color: "#f3f3f3" },
-              ]}
-            >
-              Display name
-            </Text>
-
-            <TextInput
-              style={[
-                styles.displayNameInput,
-                darkMode && {
-                  backgroundColor: "#121212",
-                  borderColor: "#333",
-                  color: "#f3f3f3",
-                },
-              ]}
-              value={displayNameDraft}
-              onChangeText={(value) =>
-                setDisplayNameDraft(value.slice(0, DISPLAY_NAME_MAX))
-              }
-              placeholder="Enter display name"
-              placeholderTextColor={darkMode ? "#8f8f8f" : "#777"}
-              maxLength={DISPLAY_NAME_MAX}
-              autoCapitalize="words"
-              autoCorrect={false}
-            />
-
-            <Text
-              style={[
-                styles.displayNameCounter,
-                darkMode && { color: "#bdbdbd" },
-              ]}
-            >
-              {displayNameDraft.length} / {DISPLAY_NAME_MAX}
-            </Text>
-
-            <View
-              style={[
-                styles.modalDivider,
-                darkMode && { backgroundColor: "#333" },
-              ]}
-            />
-
-            <View style={styles.modalButtonsRow}>
-              <Pressable
-                style={[
-                  styles.modalCancelButton,
-                  darkMode && { backgroundColor: "#2a2a2a" },
-                ]}
-                onPress={() => setDisplayNameModalOpen(false)}
-              >
-                <Text
-                  style={[
-                    styles.modalCancelText,
-                    darkMode && { color: "#f3f3f3" },
-                  ]}
-                >
-                  Cancel
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={[
-                  styles.modalSaveButton,
-                  (!displayNameDraft.trim() || savingDisplayName) &&
-                    styles.modalSaveButtonDisabled,
-                ]}
-                onPress={saveDisplayName}
-                disabled={!displayNameDraft.trim() || savingDisplayName}
-              >
-                <Text style={styles.modalSaveText}>
-                  {savingDisplayName ? "Saving..." : "Save"}
-                </Text>
               </Pressable>
             </View>
           </Pressable>
@@ -864,24 +605,7 @@ const styles = StyleSheet.create({
   },
 
   // Delete account row
-  deleteAccountRow: {
-    backgroundColor: "#d628284b",
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginBottom: 8,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#bb0303",
-  },
 
-  deleteAccountLabel: {
-    fontSize: 16,
-    color: "#b40000",
-    fontWeight: "700",
-  },
 
   // Row text
   label: {
@@ -975,23 +699,7 @@ const styles = StyleSheet.create({
   },
 
   // Display name input
-  displayNameInput: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#d9d9d9",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    fontSize: 15,
-    color: "#111",
-  },
 
-  displayNameCounter: {
-    textAlign: "right",
-    fontSize: 12,
-    color: "#777",
-    marginTop: 6,
-  },
 
     languagePickerContainer: {
     height: 180,
