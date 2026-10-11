@@ -246,7 +246,7 @@ export default function CreatorDashboard({ items, darkMode, demo, refreshKey, on
             <SectionTitle darkMode={darkMode} title="Top content" sub="Most points in this period" />
             {top.length === 0 ? (
               <Text style={[styles.note, { color: p.muted }]}>
-                No views yet in this period. Views are counted from app version 2.2.0.
+                No views yet in this period. Views are counted from app version 3.0.0.
               </Text>
             ) : (
               top.map(({ it, s }, i) => (
