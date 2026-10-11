@@ -471,7 +471,7 @@ useEffect(() => {
 
       <View style={[styles.row, darkRowStyle]}>
         <Text style={[styles.label, darkLabelStyle]}>Version</Text>
-        <Text style={[styles.value, darkValueStyle]}>2.2.0</Text>
+        <Text style={[styles.value, darkValueStyle]}>2.2.0 (46)</Text>
       </View>
 
       {/* Text size modal */}
