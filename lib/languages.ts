@@ -1,0 +1,23 @@
+// Languages a joke, meme or video can be posted in (native names, same as the database).
+export const LANGUAGE_OPTIONS = [
+  "English",
+  "Polski",
+  "Deutsch",
+  "Français",
+  "Español",
+  "Italiano",
+  "Nederlands",
+  "Português",
+  "Svenska",
+  "Dansk",
+  "Suomi",
+  "Norsk",
+  "Čeština",
+  "Slovenčina",
+  "Magyar",
+  "Română",
+  "Hrvatski",
+  "Slovenščina",
+  "Eesti",
+  "Latviešu",
+];

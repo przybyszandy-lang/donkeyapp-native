@@ -16,6 +16,7 @@ import {
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LANGUAGE_OPTIONS } from "../../lib/languages";
 import { supabase } from "../../lib/supabase";
 
 
@@ -32,28 +33,7 @@ const DARK_MODE_KEY = "donkey:darkmode:v1";
 const TEXT_SIZE_KEY = "donkey:textsize:v1";
 const SUBMITTER_TOKEN_KEY = "donkey:submitter-token:v1";
 
-const LANGUAGE_OPTIONS = [
-  "English",
-  "Polski",
-  "Deutsch",
-  "Français",
-  "Español",
-  "Italiano",
-  "Nederlands",
-  "Português",
-  "Svenska",
-  "Dansk",
-  "Suomi",
-  "Norsk",
-  "Čeština",
-  "Slovenčina",
-  "Magyar",
-  "Română",
-  "Hrvatski",
-  "Slovenščina",
-  "Eesti",
-  "Latviešu",
-];
+
 
 const MIN_SUBMIT_TIME = 1500;
 
@@ -77,7 +57,6 @@ export default function AddJokeScreen() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
-  const [mediaInfoOpen, setMediaInfoOpen] = useState(false);
 
   /*
   -------------------------------------------------------
@@ -139,7 +118,6 @@ const confirmActionRef = useRef<null | (() => void)>(null);
       setSubmitSuccess(false);
       setConfirmVisible(false);
       setLanguageModalOpen(false);
-      setMediaInfoOpen(false);
       setPreviewMode(false);
       await loadUser();
       await loadAppearanceSettings();
@@ -733,6 +711,21 @@ const handleSubmitConfirm = () => {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
+        <Pressable
+          style={[styles.backToChooser, darkMode && styles.backToChooserDark]}
+          onPress={() => router.navigate("/(tabs)/add-content")}
+        >
+          <Text
+            style={[
+              styles.backToChooserText,
+              { fontSize: 15 * textScale },
+              darkMode && styles.backToChooserTextDark,
+            ]}
+          >
+            ← Back
+          </Text>
+        </Pressable>
+
         <View style={styles.logoOnlyTop}>
           <Image
             source={require("../../assets/logo.png")}
@@ -883,20 +876,6 @@ const handleSubmitConfirm = () => {
           </Pressable>
         </View>
 
-        <Pressable
-          style={[styles.mediaButton, darkMode && styles.mediaButtonDark]}
-          onPress={() => setMediaInfoOpen(true)}
-        >
-          <Text
-            style={[
-              styles.mediaButtonText,
-              { fontSize: 15 * textScale },
-              darkMode && styles.mediaButtonTextDark,
-            ]}
-          >
-            Submit a meme or video
-          </Text>
-        </Pressable>
       </ScrollView>
 
         {languageModalOpen && (
@@ -977,56 +956,6 @@ const handleSubmitConfirm = () => {
           </View>
         )}
 
-        {mediaInfoOpen && (
-          <View style={styles.confirmOverlay}>
-            <View style={[styles.mediaInfoBox, darkMode && styles.confirmBoxDark]}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text
-                  style={[
-                    styles.confirmTitle,
-                    { fontSize: 16 * textScale },
-                    darkMode && styles.confirmTitleDark,
-                  ]}
-                >
-                  Memes and videos
-                </Text>
-
-                <Text
-                  style={[
-                    styles.mediaInfoText,
-                    { fontSize: 14 * textScale, lineHeight: 21 * textScale },
-                    darkMode && styles.mediaInfoTextDark,
-                  ]}
-                >
-                  Submitting memes and videos through the app is not possible at the moment.
-                  {"\n\n"}
-                  Memes and videos can only be submitted by content creators who have signed a Content Creator Agreement and confirmed their identity. This is to protect intellectual property rights.
-                  {"\n\n"}
-                  If you would like to submit memes or videos,{" "}
-                  <Text
-                    style={styles.linkText}
-                    onPress={() => {
-                      setMediaInfoOpen(false);
-                      router.push("/contact-us");
-                    }}
-                  >
-                    click here to send us a message
-                  </Text>
-                  .
-                </Text>
-              </ScrollView>
-
-              <Pressable
-                style={[styles.submitButton, styles.mediaCloseButton]}
-                onPress={() => setMediaInfoOpen(false)}
-              >
-                <Text style={[styles.buttonTextWhite, { fontSize: 14 * textScale }]}>
-                  Close
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        )}
 
 {confirmVisible && (
   <View style={styles.confirmOverlay}>
@@ -1077,6 +1006,28 @@ const handleSubmitConfirm = () => {
 }
 
 const styles = StyleSheet.create({
+  backToChooser: {
+    alignSelf: "flex-start",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  backToChooserDark: {
+    backgroundColor: "#1b1b1b",
+    borderColor: "#333",
+  },
+  backToChooserText: {
+    color: "#111",
+    fontWeight: "600",
+  },
+  backToChooserTextDark: {
+    color: "#f3f3f3",
+  },
+
   flex: {
     flex: 1,
   },
@@ -1438,49 +1389,13 @@ previewButton: {
     fontSize: 16,
   },
 
-  mediaButton: {
-    marginTop: 14,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#2f71d3",
-    backgroundColor: "#fff",
-  },
 
-  mediaButtonDark: {
-    backgroundColor: "#1b1b1b",
-  },
 
-  mediaButtonText: {
-    color: "#2f71d3",
-    fontWeight: "600",
-  },
 
-  mediaButtonTextDark: {
-    color: "#6ea0ec",
-  },
 
-  mediaInfoBox: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 14,
-    width: 310,
-    maxHeight: "80%",
-  },
 
-  mediaInfoText: {
-    color: "#333",
-    marginBottom: 16,
-  },
 
-  mediaInfoTextDark: {
-    color: "#d0d0d0",
-  },
 
-  mediaCloseButton: {
-    flex: 0,
-  },
 
   linkText: {
     color: "#2f71d3",

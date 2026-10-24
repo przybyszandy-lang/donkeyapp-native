@@ -67,9 +67,9 @@ useEffect(() => {
       />
 
       <Tabs.Screen
-        name="add-joke"
+        name="add-content"
         options={{
-          title: "Add Joke",
+          title: "Add Content",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="add-circle" color={color} size={size} />
           ),
@@ -83,6 +83,12 @@ useEffect(() => {
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="person" color={color} size={size} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="add-joke"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen

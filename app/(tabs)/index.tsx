@@ -924,7 +924,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
             style={styles.modalItem}
             onPress={() => {
               setMenuOpen(false);
-              router.push("/(tabs)/add-joke");
+              router.push("/(tabs)/add-content");
             }}
           >
             <Text
@@ -933,7 +933,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
                 darkMode && { color: "#f3f3f3" },
               ]}
             >
-              Add a Joke
+              Add Content
             </Text>
           </Pressable>
 

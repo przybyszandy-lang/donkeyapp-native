@@ -337,17 +337,7 @@ export default function MyJokesScreen() {
         item.is_visible === true && (item.average ?? 0) >= 0.75;
 
       if (shouldArchive) {
-        const { error } = await supabase
-          .from("jokes")
-          .update({
-            user_id: null,
-            added_by_email: "deleted@donkeyapp.com",
-            is_visible: false,
-            is_new: false,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", item.id)
-          .eq("user_id", currentUserId);
+        const { error } = await supabase.rpc("archive_my_joke", { p_id: item.id });
 
         if (error) throw error;
       } else {
