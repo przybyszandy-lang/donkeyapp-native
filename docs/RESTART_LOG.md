@@ -129,7 +129,7 @@ Meme visibility loophole (pre-existing): old feed/recent/favourite/profile funct
 - jokes policies: public read of visible jokes or memes; users read/insert/update/delete own rows; anon insert with valid submitter token; admins read all.
 - profiles: own row only; is_admin protected from self-update (per earlier log; not re-checked).
 - **Open issue A:** the old log's column hardening is NOT active. anon/authenticated have table-wide SELECT on jokes; `submitter_token` readable on 687 visible rows; `added_by_email` readable but empty on all rows.
-- **Open issue B:** authenticated users can update every column of their own jokes (policy checks only user_id). Via the API a user could self-approve, set content_type 'meme' (loophole) or 'video' pointing at an existing file, or change counts. Cannot upload files.
+- **Open issue B — FIXED 24 Oct 2026** (`supabase/guard-migration.sql` / `guard-rollback.sql`, trigger `jokes_guard`, tested): app/website users can only insert pending jokes and only change text/language (back to Pending) or archive. Also closed: inserts could be saved already approved / as meme or video. Admin SQL and rate/report functions unaffected. Old note: authenticated users can update every column of their own jokes (policy checks only user_id). Via the API a user could self-approve, set content_type 'meme' (loophole) or 'video' pointing at an existing file, or change counts. Cannot upload files.
 - **Agreed:** fix A and B before releasing video (database-only, no app build). First check Add Joke, Edit Joke, My Jokes archive and website anonymous submit so nothing breaks.
 
 ### Creator profile (run in Supabase 11 Oct 2026 — `supabase/profile-migration.sql` / `profile-rollback.sql`)
@@ -259,3 +259,10 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 - Security check done; open issues A and B recorded, fix agreed before release.
 - GitHub (both repos) and Supabase connected to Claude.
 - Last commits: app `feature/video` 39ef2b6 (+ this log); website `main` a3039e7.
+
+## 11b. Session log — 24 Oct 2026
+
+- Issue B fixed in database (jokes_guard trigger, applied via connector, tested in a rolled-back transaction).
+- Found (pre-existing, not fixed): My Jokes "archive" (well-rated jokes) is refused by the update policy because it sets user_id to empty.
+- Agreed upload plan (replaces 6c "creators only"): everyone can upload memes/videos; ALL go to manual approval in admin; trusted uploaders (met by Andy in person/Teams) publish straight away; later a paid automatic scanner checks every upload; no small daily limit, only a high safety cap against storage abuse; message telling users approval is manual and may take a while.
+- App plan: "Add Joke" tab → "Add Content" with three options: Add a joke (current page, remove the special-account message), Add a meme, Add a video.
