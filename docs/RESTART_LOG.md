@@ -3,9 +3,9 @@
 Single source of truth for project state, working rules, environment and latest work.
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
-**Last updated:** 10 Oct 2026 (end of session)
+**Last updated:** 24 Oct 2026 (end of session)
 **Live (store) app:** 2.1.11 build 42 — branch `main`
-**Video test app:** version **3.0.0** (renamed from 2.2.0 on 11 Oct — complete remake), build numbers set automatically by EAS — branch `feature/video`
+**Test app:** version **3.0.0** — branch `feature/video`. Build numbers are set automatically by EAS. Andy started the iOS build on 24 Oct with everything below (user uploads, blocking, new Terms + Privacy).
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
 
 ---
@@ -18,28 +18,30 @@ Andy is not a coder. No coding jargon. Never say "add this inside this function"
 2. Never guess code, files, database structure, packages, configuration, build path or device setup. Check or ask.
 3. Challenge Andy when he is going the wrong way. Don't just agree.
 4. Do not reopen decisions already made unless Andy asks.
-5. Build numbers are counted up automatically by EAS (since 11 Oct 2026). Never trust a "prepared, not built" note: before telling Andy to build, check the last number actually uploaded. Only the version (e.g. 2.2.0) is changed by hand, in `app.json`.
+5. Build numbers are counted up automatically by EAS (since 11 Oct 2026). Only the version (e.g. 3.0.0) is changed by hand, in `app.json`. A version not yet released to the App Store can take more TestFlight builds.
 6. Say clearly whether to save, commit, or both.
 7. Be extremely brief. One sentence, quick decision. Details only if asked.
 8. At session end: short progress log + update this file with only the changes actually made.
 9. Never put service-role keys or admin credentials in the app or website.
 10. Database changes: save the SQL in the repo (`supabase/`) with an undo version. Live app must never receive rows it can't display.
 11. EAS is on the **free plan** (limited builds per month): batch app changes into as few builds as possible.
+12. Deleting data needs Andy's clear yes first.
 
 ## 2. Confirmed environment
 
 - Windows 11, GitHub Codespaces (browser), real iPhone, no simulator.
 - Apple Developer account active. iOS builds via EAS cloud; Andy tests through TestFlight (no Expo Go, no development build).
-- Supabase **Free plan**: 5 GB egress + 5 GB cached egress per month, 1 GB file storage, 50 MB max file.
+- Supabase **Free plan**: 5 GB egress + 5 GB cached egress per month, 1 GB file storage, 50 MB max per file. Andy may move to Pro later for bandwidth.
 
-### How Claude works on this project (since 4 Oct 2026)
+### How Claude works on this project
 
 - **GitHub connected:** Claude can read and push to both repositories:
   - `przybyszandy-lang/donkeyapp-native` (app) — Claude works on branch `feature/video`.
   - `przybyszandy-lang/przybyszandy-lang.github.io` (website + admin) — pushing to `main` publishes live (GitHub Pages + Vercel).
 - Claude writes app code, checks it (`npx tsc --noEmit`, `npx eslint`), commits and pushes. Andy then runs `git pull` in the Codespace and builds.
-- **Supabase connector:** connected. Read-only queries work. Changes can be applied by Claude with apply_migration (worked 10 Oct); SQL is still saved in the repo with an undo file.
-- Expo network calls are blocked in Claude's workspace: install packages with `EXPO_OFFLINE=1 npx expo install <pkg>`.
+- **Supabase connector:** connected. Claude reads with execute_sql and applies changes with apply_migration (worked every time on 24 Oct). Changes are first tested inside a transaction that is rolled back. SQL is always saved in the repo with an undo file.
+- Expo network calls are blocked in Claude's workspace: install packages with `EXPO_OFFLINE=1 npx expo install <pkg>` (or `npm install`).
+- Supabase blocks deleting storage files with SQL: files must be deleted in the dashboard (Storage).
 
 ### Build and test routine (Codespace terminal, on the right branch)
 
@@ -50,9 +52,10 @@ eas build --platform ios --profile production
 eas submit --platform ios --latest     # uploads to TestFlight only, NOT App Store review
 ```
 Then install from the TestFlight app. App Store review submission is done manually in App Store Connect.
-Version (`expo.version` in `app.json`) is set by hand. Build numbers: `eas.json` has `appVersionSource: "remote"` + `autoIncrement` on production, so EAS gives every build a new number (the `ios.buildNumber` / `android.versionCode` in `app.json` are ignored). Settings "Version" row reads the real installed version and build from the phone (expo-application), so it never needs editing. 11 Oct 2026: build 45 failed on submit because 45 was already on App Store Connect.
+If `git pull` complains about `package-lock.json`, run `git checkout -- package-lock.json` first. Never run `npm audit fix`.
+Version (`expo.version` in `app.json`) is set by hand. Build numbers: `eas.json` has `appVersionSource: "remote"` + `autoIncrement` on production. Settings "Version" row reads the real installed version and build from the phone (expo-application).
 
-**Branch warning:** the Codespace is currently on `feature/video`. Any urgent fix for the live app must be made on `main` (`git checkout main`), and never built from `feature/video` by mistake.
+**Branch warning:** the Codespace is on `feature/video`. Any urgent fix for the live app must be made on `main` (`git checkout main`), and never built from `feature/video` by mistake.
 
 ## 3. Project overview
 
@@ -60,225 +63,172 @@ Version (`expo.version` in `app.json`) is set by hand. Build numbers: `eas.json`
 | --- | --- |
 | App name / store name | Donkey App / Donkey App Comedy |
 | Bundle ID / package | com.donkeyapp.app |
-| Expo slug | `donkeyapp-native` (old log said donkeyapp — wrong; do NOT change, EAS depends on it) |
+| Expo slug | `donkeyapp-native` (do NOT change, EAS depends on it) |
 | Scheme | donkeyapp |
 | EAS projectId / owner | eb7b5709-70ab-40f4-8191-2ff768086e58 / donkeyappofficial |
 | Website | https://www.donkeyapp.com (GitHub Pages, repo przybyszandy-lang.github.io) |
 | Admin | https://przybyszandy-lang-github-io.vercel.app/donkey-admin (same repo, Vercel) |
-| Supabase project | mknsvxajrvdlwqywvlrf (eu-west-2), Postgres 17 |
+| Supabase project | mknsvxajrvdlwqywvlrf (eu-west-2 London), Postgres 17 |
+| Andy's admin account | a210e13b-077f-4463-ba58-523dbcdfb1a1 (profiles.is_admin = true) |
+| Account that owns Andy's videos | 1b01e76f-daa9-4c21-822b-2a87d390d9e8 |
 | Tech | Expo SDK 54 (~54.0.33), React Native 0.81.5, React 19.1, expo-router 6, new architecture on, React Compiler on, Supabase JS 2 |
 
-Tags/branches: `main` = live app. Tag `pre-video-v2.1.11` (commit 041ea70) = state before video work. Branch `feature/video` = video work.
+Tags/branches: `main` = live app. Tag `pre-video-v2.1.11` (commit 041ea70) = state before video work. Branch `feature/video` = all new work (version 3.0.0).
 
 ## 4. App code map (`donkeyapp-native`)
 
-- `app/_layout.tsx` — root Stack in SafeAreaView, splash overlay, AdMob consent.
-- `app/(tabs)/_layout.tsx` — tabs: Home, Favourites, Add Joke, My Jokes (settings, edit-joke, explore hidden). Listens to `darkModeChanged`.
-- `app/(tabs)/index.tsx` — Home feed. RPC `get_jokes_feed_mixed_v2` (45 rows per load, cursor) + `get_recent_jokes_with_names_mixed_v2` (Recently Added every 3 items). Ads every 6 items (`ADS_ENABLED = true`). Android scroll guard. Menu, search, sign-in modal (email OTP), report modal, meme zoom viewer, videos + Reel.
-- `app/(tabs)/favourites.tsx` — favourites from phone storage, RPC `get_favourite_jokes_with_names_mixed_v2`, ads every 7, videos + Reel.
-- `app/profile/[userId].tsx` — public profile, RPC `get_profile_jokes_with_name_mixed_v2`, ads every 7, videos + Reel.
-- `app/(tabs)/my-jokes.tsx` — **My Profile** tab (renamed 11 Oct): tabs **Profile** (`components/profile/MyProfileEditor.tsx`: picture, display name, about me, website, view public profile, Delete Account) / **Dashboard** / **Content**. Own items read from `jokes` (50 per page, incl. content_type, image_path, video_path). Cards show type, status, thumbnail, points/shown/views/votes/rating; filters (All/Jokes/Memes/Videos), sort (Newest/Most points/Most votes); tap → detail. Copy/edit only for jokes; delete or archive as before. Admins see an "Example data" switch (made-up numbers for pitches).
-- `components/creator/` — `CreatorDashboard.tsx` (period, tiles, share of all points, chart with metric chips + Day/Week/Month/Year, watch funnel, top 5, content counts, rules), `ContentDetail.tsx` (full-screen item stats), `ui.tsx` (shared pieces). `components/StatsBarChart.tsx` (bar chart from plain views, no new package). `lib/creatorStats.ts` (loading, grouping, example data).
-- `app/(tabs)/add-joke.tsx`, `edit-joke.tsx` — joke submission/edit (direct table writes, submitter token).
-- `app/(tabs)/settings.tsx` — joke language, **Video sound** switch, dark mode, text size, legal pages, version (read from the phone). Account items moved to My Profile (11 Oct).
-- `app/profile/[userId].tsx` — public profile: `components/profile/ProfileHeader.tsx` (picture, name, joined, about me first ~100 chars + more, website, Jokes/Memes/Videos/Votes counts, All/Jokes/Memes/Videos switch) scrolls with the list.
-- Feed cards (Home, Favourites): top row `components/profile/CardAuthor.tsx` = picture + name + Follow (anonymous = blank face, no Follow; own posts no Follow). Replaced the "Added by" line. `lib/follows.ts` = shared follow state + card picture cache. `app/follows.tsx` = Followers / Following list. `components/profile/MyEventsEditor.tsx` = events on My Profile.
-- `lib/profile.ts` — profile helpers (also social links, camera, events), picture upload (square crop, 512 px JPEG, overwrites `avatars/<user id>/avatar.jpg`), website tidy-up. `components/profile/Avatar.tsx` — round picture or coloured initial.
-- `app/contact-us.tsx` (contact_messages), `delete-account.tsx` (RPC `soft_delete_my_account`), `privacy/terms/guidelines.tsx`.
-- `components/FeedAdSlot.native.tsx` / `FeedAdSlot.tsx` — native ad / web-safe empty.
-- `components/VideoCard.tsx` — video inside a feed card (4:5 box, poster, description bar, speaker icon; only the active card holds a player).
-- `components/ReelViewer.tsx` — full-screen Reel mode (ad page after every 5 videos).
-- `components/ReelAdSlot.native.tsx` / `ReelAdSlot.tsx` — full-screen native ad page for Reel (portrait creatives, same ad units) / web-safe empty.
-- `lib/views.ts` — view counting: phone id, batching queue, impression handler, `useWatchTracking` (3 s / 50% / full).
-- `components/useRetryingPlayer.ts` — video player that retries once without cache on error and shows the real error.
-- `lib/video.ts` — Video sound setting, visibility tracking, app-active hook, video URL helper, `ReelVideo` type.
-- `lib/jokeActions.ts` — shared favourite / vote / report / share (same keys + RPCs as screens; emits `favouritesChanged` / `votesChanged`).
-- `lib/supabase.ts` — public publishable key only (safe), AsyncStorage session on native.
-- `supabase/pre-video/functions-backup.sql`, `supabase/video-migration.sql`, `supabase/video-rollback.sql` — database record and undo.
-- `supabase/views-migration.sql` / `views-rollback.sql` — view counting (run in Supabase 10 Oct 2026).
+**Tabs** (`app/(tabs)/_layout.tsx`): Home, Favourites, **Add Content**, **My Profile**. Hidden: add-joke, edit-joke, settings, explore. Listens to `darkModeChanged`.
 
-**Phone storage keys (AsyncStorage):** `donkey:favourites:v1`, `donkey:votes:v1`, `donkey:language:v1`, `donkey:darkmode:v1`, `donkey:textsize:v1`, `donkey:videosound:v1`, `donkey:language-tutorial-seen:v1`, `donkey:add-joke-language:v1`, `donkey:add-joke-draft:v1`, `donkey:last-submit:v1`, `donkey:submitter-token:v1`, `donkey:device-id:v1` (random phone id for view counting).
-**Events:** `darkModeChanged`, `videoSoundChanged`, `favouritesChanged`, `votesChanged`.
-**Storage URLs:** memes `…/storage/v1/object/public/memes/<image_path>`; videos and video previews `…/storage/v1/object/public/videos/<path>`.
+- `app/_layout.tsx` — root Stack in SafeAreaView, splash overlay, AdMob consent (UMP form).
+- `app/(tabs)/index.tsx` — Home feed. RPC `get_jokes_feed_mixed_v2` (45 rows per load, cursor) + `get_recent_jokes_with_names_mixed_v2` (Recently Added every 3 items). Ads every 6 items. Feed built batch by batch so it doesn't jump. Hides blocked users / hidden posts. Menu (item "Add Content"), search, sign-in modal (email OTP), report modal, meme zoom, videos + Reel.
+- `app/(tabs)/favourites.tsx` — favourites from phone storage, RPC `get_favourite_jokes_with_names_mixed_v2`, ads every 7, videos + Reel, hides blocked.
+- `app/profile/[userId].tsx` — public profile: `components/profile/ProfileHeader.tsx` (picture, name, joined, about me, website, socials, counts, followers, events, Follow, **Block / Unblock**, type switch). RPC `get_profile_jokes_with_name_mixed_v2`, ads every 7. Blocked profile shows no posts.
+- `app/(tabs)/add-content.tsx` — **Add Content**: Add a joke / Add a meme / Add a video + "checked by hand" note.
+- `app/(tabs)/add-joke.tsx` — joke submission (unchanged except a "← Back" to Add Content; creator message removed). `edit-joke.tsx` — edit own joke.
+- `app/upload.tsx` (`?type=meme|video`) + `lib/uploads.ts` — upload screen: sign-in needed; choose from phone (meme also camera); meme → JPEG ≤1440 px ≤5 MB; video → iPhone trim to 90 s, then **shrunk on the phone** with react-native-compressor (MP4, max 720p, max 2.5 Mbit/s, sized under 45 MB, second smaller try, progress "Shrinking your video… %"); preview picture made with expo-video-thumbnails; language; description ≤100; tick box "18 or over / made it or have permission incl. people shown / Terms + Guidelines"; files to `u/<user id>/<time>_<random>.jpg|.mp4`; then RPC `submit_upload` → "pending" or "published".
+- `app/(tabs)/my-jokes.tsx` — **My Profile**: tabs Profile (`components/profile/MyProfileEditor.tsx`: picture, name, about me, website, socials, events, Delete Account) / Dashboard / Content (own items incl. pending memes/videos, filters, sort, detail). Archive of popular jokes uses RPC `archive_my_joke`.
+- `components/creator/` — `CreatorDashboard.tsx`, `ContentDetail.tsx`, `ui.tsx`; `components/StatsBarChart.tsx`; `lib/creatorStats.ts`.
+- `app/(tabs)/settings.tsx` — joke language, Video sound, dark mode, text size, **Blocked users**, legal pages, Contact Us, version.
+- `app/blocked.tsx` — Blocked users list (Unblock) + hidden posts ("Show again").
+- `lib/blocks.ts` — blocking + hiding (phone lists, `record_block` to database, "⋯" menu, confirm, `useBlocks` hook).
+- `components/profile/CardAuthor.tsx` — top row of feed cards: picture + name + Follow + **"⋯"** (Block <name> / Hide this post; not on own posts).
+- `lib/follows.ts` (follow state, card picture cache, `forgetFollow`), `app/follows.tsx` (Followers / Following), `lib/profile.ts`, `components/profile/Avatar.tsx`, `MyEventsEditor.tsx`.
+- `app/terms.tsx`, `app/privacy.tsx` → `components/legal/LegalScreen.tsx`, text from `lib/terms.json` / `lib/privacy.json` (same text as website). `app/guidelines.tsx` (not yet updated for memes/videos).
+- `lib/languages.ts` — the 20 languages (shared by Add Joke and Upload).
+- `app/contact-us.tsx` (contact_messages), `delete-account.tsx` (RPC `soft_delete_my_account`).
+- `components/FeedAdSlot.native.tsx` / `FeedAdSlot.tsx`, `components/ReelAdSlot.native.tsx` / `ReelAdSlot.tsx` — ads.
+- `components/VideoCard.tsx`, `components/ReelViewer.tsx` (skips blocked users' videos), `components/useRetryingPlayer.ts`, `lib/video.ts`.
+- `lib/views.ts` — view counting + `getDeviceId()` (random phone id).
+- `lib/jokeActions.ts` — favourite / vote / report / share.
+- `lib/supabase.ts` — publishable key only, AsyncStorage session.
+- `scripts/build-web-legal.py` — rebuilds website legal pages from the json files (see section 10).
+
+**Packages added for 3.0.0:** expo-image-picker, expo-image-manipulator, base64-arraybuffer, @react-native-community/datetimepicker, expo-application, expo-video-thumbnails, react-native-compressor + react-native-nitro-modules (plugin in app.json). app.json permission texts: photos, camera, **microphone** (needed to record video).
+
+**Phone storage keys (AsyncStorage):** `donkey:favourites:v1`, `donkey:votes:v1`, `donkey:language:v1`, `donkey:darkmode:v1`, `donkey:textsize:v1`, `donkey:videosound:v1`, `donkey:language-tutorial-seen:v1`, `donkey:add-joke-language:v1`, `donkey:add-joke-draft:v1`, `donkey:last-submit:v1`, `donkey:submitter-token:v1`, `donkey:device-id:v1`, `donkey:blocked-users:v1`, `donkey:hidden-posts:v1`.
+**Events:** `darkModeChanged`, `videoSoundChanged`, `favouritesChanged`, `votesChanged`, `followsChanged`, `cardAvatarsChanged`, `blocksChanged`.
+**Storage URLs:** memes `…/storage/v1/object/public/memes/<image_path>`; videos and video previews `…/storage/v1/object/public/videos/<path>`; avatars `…/avatars/<user id>/avatar.jpg`.
 
 ## 5. Database (Supabase)
 
 ### jokes table
-Columns: id, created_at, added_by_email, content (required), is_new (default true), is_visible (default **true**), is_flagged, rating_bad/meh/good/great_count, language (default English), submitter_token, average, report_count, user_id, updated_at, content_type (default 'joke'; values 'joke', 'meme', 'video'), image_path, **video_path** (added 4 Oct 2026). Only constraint: primary key. No rule restricting content_type.
+Columns: id, created_at, added_by_email, content (required), is_new, is_visible (default true), is_flagged, rating_bad/meh/good/great_count, language, submitter_token, average, report_count, user_id, updated_at, content_type ('joke' / 'meme' / 'video'), image_path, video_path.
+Status: Approved = is_visible true; Pending = is_visible false & is_new true; Not approved = is_visible false & is_new false.
+A video row: `video_path` = MP4, `image_path` = preview picture, `content` = description (may be empty).
+4 videos exist (Andy's, 10–11 Oct). The 5 test videos were deleted 24 Oct (rows, views, reports); their 10 files remain in storage but are never shown (optional dashboard clean-up: names starting 1791125380734, 1791125381325, 1791125381765, 1791143738106, 1791143738529).
 
-Status meaning: Approved = is_visible true; Pending = is_visible false & is_new true; Not approved = is_visible false & is_new false.
-Memes and videos are uploaded only by Andy and are saved **already approved** (is_visible true, is_new false). On 4 Oct 2026 the 164 old pending memes were approved; 1 rejected meme left as is.
+### Protection of the jokes table
+- **Trigger `jokes_guard`** (`supabase/guard-migration.sql` / `guard-rollback.sql`, 24 Oct): for app/website users (not admins, not SQL Editor) inserts are always pending jokes (type joke, no files, zero counts); updates can only change text + language (goes back to Pending) or archive. Fixes old **issue B**.
+- **Meme loophole closed** (24 Oct): all feed/recent/favourite/profile functions and the public read rule now need `is_visible = true` (marked `/* meme-loophole-closed */` in the functions).
+- Policies: public read of visible rows; users read/insert/update/delete own rows; anon insert with valid submitter token; admins read all.
+- **Open issue A (still open):** anon/authenticated can read every column of visible jokes, so `submitter_token` is readable (added_by_email empty). Fix with column grants (include `video_path`, website reads it).
 
-### Functions (all owner postgres, run with owner rights, search_path=public unless noted)
+### Functions (main ones)
 | Function | Used by | Notes |
 | --- | --- | --- |
-| get_jokes_feed_mixed | live app 2.1.11, website | jokes + memes only (never videos). Random order reshuffled every 6 h |
-| get_recent_jokes_with_names_mixed | live app, website | filter added 4 Oct: jokes + memes only |
-| get_favourite_jokes_with_names_mixed | live app, website | no type filter (can't contain videos) |
-| get_profile_jokes_with_name_mixed | live app | filter added 4 Oct: jokes + memes only |
-| get_profile_jokes_with_name | website userID.html | filter added 4 Oct: jokes + memes only |
-| get_jokes_feed_mixed_v2, get_recent_jokes_with_names_mixed_v2, get_favourite_jokes_with_names_mixed_v2, get_profile_jokes_with_name_mixed_v2 | video app | same as above + videos + video_path |
-| get_reel_videos(language, limit, after_created_at, after_id) | video app Reel | visible, unflagged videos, newest first; returns content (description) |
-| rate_joke, report_joke | all | work for any joke id. rate_joke has no fixed search_path (minor) |
-| soft_delete_my_account, get_submission_count, can_submit_joke | app/website | pre-existing |
+| get_jokes_feed_mixed, get_recent_jokes_with_names_mixed, get_favourite_jokes_with_names_mixed, get_profile_jokes_with_name_mixed, get_profile_jokes_with_name | live app 2.1.11, website | jokes + memes only, visible only |
+| *_v2 versions of the four above | app 3.0.0 | + videos + video_path |
+| get_reel_videos | Reel | visible, unflagged videos, newest first |
+| rate_joke, report_joke | all | counts only (who voted/reported not stored). No auto-hide after reports |
+| submit_upload(type, file, poster, description, language) | upload screen | only way for users to create memes/videos; file must be theirs in `u/<uid>/`, unused, MP4 for video; description ≤100; cap 20 per 24 h; trusted → live, others → pending; blocked uploaders refused |
+| archive_my_joke(id) | My Profile | hides + removes owner of own popular joke (old direct update was refused) |
+| record_block(device_id, blocked_id, blocked) | blocking | saves/removes block in `user_blocks`; signed-in blocker loses follows both ways |
+| admin_check, admin_pending_uploads, admin_review_upload, admin_uploaders, admin_set_uploader | admin Review Uploads | admin-only; lists include blocked_by_count |
+| record_views + stats functions | views / dashboards | see View counting |
+| soft_delete_my_account, get_submission_count, can_submit_joke, get_public_profile, get_profile_cards, follow/unfollow, get_followers/following, get_user_events | app/website | |
 
-Meme visibility loophole (pre-existing): old feed/recent/favourite/profile functions and the public read policy show memes even when is_visible = false. Videos do NOT use this loophole.
-
-### Policies / security (checked 4 Oct 2026)
-- RLS on: jokes, profiles, joke_reports, contact_messages. `public_profiles` is a safe view (id, display_name, created_at).
-- jokes policies: public read of visible jokes or memes; users read/insert/update/delete own rows; anon insert with valid submitter token; admins read all.
-- profiles: own row only; is_admin protected from self-update (per earlier log; not re-checked).
-- **Open issue A:** the old log's column hardening is NOT active. anon/authenticated have table-wide SELECT on jokes; `submitter_token` readable on 687 visible rows; `added_by_email` readable but empty on all rows.
-- **Open issue B — FIXED 24 Oct 2026** (`supabase/guard-migration.sql` / `guard-rollback.sql`, trigger `jokes_guard`, tested): app/website users can only insert pending jokes and only change text/language (back to Pending) or archive. Also closed: inserts could be saved already approved / as meme or video. Admin SQL and rate/report functions unaffected. Old note: authenticated users can update every column of their own jokes (policy checks only user_id). Via the API a user could self-approve, set content_type 'meme' (loophole) or 'video' pointing at an existing file, or change counts. Cannot upload files.
-- **Agreed:** fix A and B before releasing video (database-only, no app build). First check Add Joke, Edit Joke, My Jokes archive and website anonymous submit so nothing breaks.
-
-### Creator profile (run in Supabase 11 Oct 2026 — `supabase/profile-migration.sql` / `profile-rollback.sql`)
-- profiles: `bio` (≤1000), `website` (≤200, must be http/https), `avatar_updated_at` (null = no picture). Users may update these + display_name.
-- **Security fix:** users can only insert id/email/display_name/created_at/updated_at (before, a new user could create their own profile as admin). Tested.
-- `avatars` bucket: public, 2 MB, JPEG only; each user may only write/replace/delete `<own user id>/avatar.jpg`.
-- `get_public_profile(user_id)`: name, bio, website, avatar_updated_at, joined date, joke/meme/video counts, votes received (deleted accounts return nothing).
-- `soft_delete_my_account` also clears bio/website/picture; app deletes the picture file first.
-- Connector apply_migration was cancelled 3× on 11 Oct; Andy ran the SQL in the SQL Editor instead.
-
-### Social: links, followers, events (run in Supabase 11 Oct 2026 — `supabase/social-migration.sql` / `social-rollback.sql`, tested on local Postgres)
-- profiles: `instagram`, `tiktok`, `youtube`, `x_handle`, `facebook` (usernames only, app builds links), `show_followers` / `show_following` (default true; counts always public, lists hidden when off; owner always sees own).
-- `follows` table (follower_id, followee_id): changed only via `follow_user` / `unfollow_user` (signed-in, not self, max 5000); users can read their own follow rows. Lists: `get_followers` / `get_following` (50 per page).
-- `creator_events` (title ≤80, venue, city, starts_at, ticket_url): owner manages own rows; max 30 upcoming; public via `get_user_events` (shown until 6 h after start).
-- `get_profile_cards(ids[])`: profile pictures for feed cards (batched in app).
-- `get_public_profile` now also returns socials, followers/following counts, privacy switches, `i_follow`.
-- Account delete also removes follows, events, socials.
-- **Still to run (optional, 3 lines):** step 8 at the end of social-migration.sql (removes default anon access to follow/unfollow; they already refuse non-signed-in users).
-
-### View counting (installed in Supabase 10 Oct 2026)
-- Table `content_views`: one row per day (UTC) + item + phone id, holding the highest level (0 shown, 1 = 3 s, 2 = 50%, 3 = full). Also viewer user, source (home/favourites/profile/reel), platform, app version, `verified` (false; for future Apple/Google genuine-app check). RLS on, no direct access.
-- `record_views(device_id, items, platform, app_version)`: only way in. Checks item visible + unflagged, levels 1–3 only for videos, creators' own views excluded, max 100 per call, max 2000 per phone per day.
-- Points (`view_points`): joke/meme shown = 1; video 3 s = 1, 50% = 3, full = 5 (highest level only, max 5).
-- Admin-only: `get_content_stats(from,to)` (per item, incl. votes + average out of 4 from vote counts — the `average` column is not maintained), `get_views_daily(joke_id or null, from, to)`, `get_content_item(id)`. Creator (app dashboard): `get_my_content_stats(from,to)`, `get_my_views_daily(joke_id or null, from, to)`, `get_points_total(from,to)` (one number, for "your share").
-- Business model (MVP, not incorporated yet): gross margin = ad income − direct costs; 70% to creators split by points, 30% Donkey App. Strong anti-fake (App Attest / Play Integrity via Edge Function, held + reviewed payouts) planned before real payouts.
-- Tested on a local Postgres copy (dedupe, upgrades, own-view exclusion, admin-only, rollback).
-- **MVP change (10 Oct, applied):** creators' own views COUNT for now (step 10 in views-migration.sql) so Andy can fill statistics. Before real payouts: restore the step-3 version (skips own views) + anti-fake checks.
+### Profiles, social, uploads
+- profiles: display_name, bio, website, avatar_updated_at, socials (instagram, tiktok, youtube, x_handle, facebook), show_followers / show_following, is_admin, is_deleted, **upload_trusted**, **uploads_blocked**. Users can only update named columns (not is_admin / trusted / blocked).
+- `follows`, `creator_events`, `user_blocks` (phone id + blocked user + optional blocker account; no direct access).
+- **Still to run (optional, 3 lines):** step 8 at the end of social-migration.sql.
 
 ### Storage
-- `memes` bucket: public, 5 MB, jpeg/png/webp. Policy "Admins can upload memes" (insert, profiles.is_admin).
-- `videos` bucket: public, 25 MB (Andy's choice; aim < 8 MB), video/mp4 + image/jpeg. Policy "Admins can upload videos". Files: `videos/<timestamp>_<random>.mp4`, previews `posters/<same>.jpg`.
-- No read/update/delete policies: files viewable by link only; delete in Supabase dashboard.
+- `memes`: public, 5 MB, jpeg/png/webp. Admin upload anywhere; **users add-only in `u/<own id>/`**.
+- `videos`: public, **50 MB** (24 Oct, `supabase/video-limit-50mb.sql`), video/mp4 + image/jpeg. Admin files `videos/…mp4` + `posters/…jpg`; **users add-only in `u/<own id>/`**.
+- `avatars`: public, 2 MB, JPEG; each user only `<own id>/avatar.jpg`.
+- No user replace/delete; rejected uploads keep their files (delete in dashboard if needed). Uploading blocked if `uploads_blocked`.
+
+### View counting (since 10 Oct)
+- `content_views`: one row per day + item + phone id, highest level (0 shown, 1 = 3 s, 2 = 50%, 3 = full), viewer user, source, platform, app version, `verified`.
+- Points: joke/meme shown = 1; video 3 s = 1, 50% = 3, full = 5.
+- **MVP setting:** creators' own views COUNT for now. Before real payouts: restore own-view exclusion + App Attest / Play Integrity.
+- Business model idea (not promised to users): gross margin = ad income − direct costs; 70% creators by points, 30% Donkey App.
+
+### SQL files in repo (`supabase/`, each with undo)
+video-migration, views-migration, profile-migration, social-migration, **guard-migration**, **uploads-migration**, **review-migration**, **blocks-migration**, **video-limit-50mb** (24 Oct ones applied + tested).
 
 ## 6. Admin portal (repo przybyszandy-lang.github.io, folder donkey-admin)
 
-Email OTP login; access only if profiles.is_admin = true. Pages: index (menu), approve, language, add-meme, **add-video**, messages, **stats** (10 Oct). Pages generate SQL that Andy runs in the SQL Editor (they do not write to the jokes table themselves).
-- **Add Meme:** uploads images to `memes`; SQL now inserts memes approved (changed 4 Oct).
-- **Add Video:** MP4 only, ≤ 60 s, ≤ 25 MB, browser checks it can play; warns over 8 MB; auto preview picture; optional description per video (max 100 characters); SQL inserts approved video rows (content = description). Owner: Andy's user 1b01e76f-daa9-4c21-822b-2a87d390d9e8.
-- **Stats:** totals, views-over-time chart (Day/Week/Month/Year + series tick boxes), best performing content (type filter, sort), click item → detail (media, votes, average, funnel, all-time/month/today, own chart), creators share, payout calculator, "Show example data" (made-up numbers for showing creators). Needs views-migration.sql.
-- Video prep: HandBrake, preset Fast 720p30, MP4, H.264, target < 8 MB.
+Email OTP login; access only if profiles.is_admin = true. Menu tiles: Moderation (approve, **jokes only**), **Review Uploads**, Language, Add Meme, Add Video, Content Stats, Messages.
+- **Review Uploads** (`review.html`, 24 Oct): saves directly via admin-only functions (no SQL copying). Tab "Waiting for approval": memes/videos oldest first, picture / playable video, description, language, uploader name + email, trusted/blocked badge, past approved/rejected, **blocked by N people** (red); buttons Approve / Reject / Block this uploader. Tab "Uploaders": search email/name; columns waiting/approved/rejected/last upload/**Blocked by**; switches **Trusted** (confirm: goes live without approval) and **Blocked**.
+- **Approve** (jokes), **Language**, **Add Meme**, **Messages**: generate SQL that Andy runs in the SQL Editor.
+- **Add Video:** MP4, ≤ 90 s, ≤ 50 MB, warns over 20 MB, auto preview, description ≤100; SQL inserts approved rows (owner 1b01e76f…). Video prep: HandBrake Fast 720p30.
+- **Stats:** views, points, best content, detail, creator share, payout calculator, example data.
 
-Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html`, `joke.html` → rewritten by `vercel.json` to `api/devjoke.js` (shared-link page; memes and, since 10 Oct, **videos**: player with poster, description, buttons; link preview uses the poster). Old language pages (french.html etc.) are unused.
+Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html?userId=`, `joke.html` → `api/devjoke.js` (shared links incl. videos). Legal: `conditions.html` (most links), `terms.html`, `privacy.html`, `guidelines.html`. Website has no meme/video upload (app only).
 
-## 7. Video feature — decisions and current behaviour
+## 7. Content rules (as built 24 Oct)
 
-- A video is a normal jokes row: `content_type = 'video'`, `video_path`, `image_path` = preview picture, `content` = description (may be empty). Same id for votes, reports, favourites, ownership.
-- Library: expo-video ~3.0.15 (3.0.16 installed), config plugin added. Players use on-phone caching; retry without cache on error.
-- **Feed (Home, Favourites, Profile):** only the most visible video plays (60 % visible); others show the preview. Autoplay muted by default. Pauses when leaving the screen, when a menu/modal/Reel is open, or when the app goes to background. Description on the bottom of the video; no separate text line. Copy button hidden for videos; share text "Check out this video on Donkey App".
-- **Video sound setting:** phone only (`donkey:videosound:v1`), default OFF, never stored in Supabase. Settings switch and the speaker icon on feed videos change the same value.
-- **Reel mode:** tap a video → full screen, videos only, from `get_reel_videos` (independent of the feed), starts with the tapped video. Every video starts with sound; muting affects only the current video; the next one starts with sound again; never changes the Settings switch. Overlay = close + sound (top), play/pause (centre), "Added by" + description + see-through favourite / vote / report / share (bottom). Overlay hides on tap or after 7 s idle; tap shows it again; while paused it stays up. Centre button pauses until pressed again; holding the video pauses only while held. Closing stops all sound and returns to the same feed position.
-- Feed autoplay muted with small files; if bandwidth runs short, upgrade Supabase to Pro (paid from ad income); tap-to-play is the fallback.
-- Share links for videos open the website page, which plays the video (done 10 Oct).
-- **Reel ads:** full-screen native ad page after every 5 videos (portrait creatives, "Sponsored", close button only). Ad that fails ahead of the user is skipped; if the user is on it, "Swipe up for more videos".
-- **View counting:** impressions (≥50% visible for 1 s) in Home/Favourites/Profile; videos also 3 s / 50% / full (time actually played) in feed and Reel. Sent in batches every 30 s / 50 items / on background.
-- 5 test videos (4 Oct 2026): database rows, views and reports **deleted 24 Oct 2026**. Their 10 files (videos/ and posters/ starting 1791125380734, 1791125381325, 1791125381765, 1791143738106, 1791143738529) must be deleted by hand in Supabase dashboard → Storage → videos (SQL deletion of files is blocked). 4 real videos remain.
+- **Jokes:** anyone, no account needed (app or website; shown as Anonymous). Always wait for approval (Approve page).
+- **Memes and videos:** account required, app only. Tick box: 18+ (self-declared), own it / have permission, follows Terms + Guidelines. All wait for approval in **Review Uploads**, except **trusted** uploaders (Andy marks them after meeting in person / Teams) who go live straight away. **Blocked** uploaders cannot upload. Limits: video 90 s, under 50 MB after shrinking; max 20 uploads per person per 24 h.
+- Agreed plan: manual approval for all now; later a paid automatic scanner (nudity/violence) checks every upload.
 
-## 8. Video project status
+## 8. Blocking (24 Oct)
 
-| Phase | Status |
+Personal, this phone only (others still see the person). "⋯" on feed cards → Block <name> (confirm; removes follows both ways if signed in) or Hide this post (works for anonymous jokes). Profile page: Block / "You blocked … Unblock". Hidden on Home, Recently Added, Favourites, profiles, Reel. Settings → Blocked users to unblock / show hidden posts again. Each block is recorded (phone id) so admin sees "blocked by" counts. Required by Apple for apps with user uploads.
+
+## 9. Video feature — behaviour
+
+- Feed (Home, Favourites, Profile): most visible video plays muted (sound setting default off); others show preview; pauses off-screen / menus / background. Speaker icon = same as Settings Video sound.
+- Reel: tap a video → full screen, videos only (`get_reel_videos`), each starts with sound, overlay with close/sound/play-pause/Added by/description/buttons, auto-hide 7 s; ad page every 5 videos.
+- Share links open the website video page. View counting in feed and Reel (impressions, 3 s / 50% / full), sent in batches.
+
+## 10. Legal pages (24 Oct)
+
+- One text for app and website: `lib/terms.json`, `lib/privacy.json`. After changing a json file, rebuild the website pages:
+  `python3 scripts/build-web-legal.py lib/terms.json ../przybyszandy-lang.github.io/conditions.html` (and `terms.html`), `python3 scripts/build-web-legal.py lib/privacy.json ../przybyszandy-lang.github.io/privacy.html`, then push the website.
+- **Terms:** 13+ (under 18 with parent permission), uploads 18+, manual approval, trusted uploaders, zero-tolerance banned list (nudity/sexual, children, violence/self-harm, hate, harassment, people without consent, others' material, deepfakes, illegal, spam), licence incl. technical changes, removal + popular jokes kept anonymously, copyright notices, complaints, enforcement, **no payments now — possible future revenue sharing under separate terms**, liability, England & Wales law.
+- **Privacy:** account, profile, uploads, phone ID + view counting, blocks, phone-only data, AdMob/AdSense/Analytics with consent, lawful bases, who sees what, providers (Supabase London, Google, Vercel, GitHub Pages), retention, deletion (72 h), children, UK rights + ICO, security.
+- To do: add the legal owner's name (Andy personally or a company) as data controller; solicitor review before payouts.
+
+## 11. Status and next steps
+
+| Area | Status |
 | --- | --- |
-| 1 Protect current version | Done (tag pre-video-v2.1.11, branch feature/video) |
-| 2 Inspect | Done |
-| 3 Database + storage | Done (see supabase/video-migration.sql; step 6 = Reel description) |
-| 4 Admin | Done (add-video.html with descriptions, menu tile) |
-| 5–12 App (feed, sound setting, Reel, favourites, profile, voting, reporting, Home) | Done and tested on 2.2.0 (43) and (44); build 45 changes not yet built |
-| 13 Website shared link for videos | Done 10 Oct (live) |
-| 14 Testing | In progress |
-| 15 Release | Not started |
-
-Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker icon, Reel with sound, mute-reset per video, close/home-button stop sound, descriptions, overlay auto-hide, Added by, voting, reporting, favourites (feed + Reel), swipe back (fixed), My Jokes text — all OK.
+| Video phases 1–13 (database, admin, app, Reel, website links) | Done |
+| Profiles, followers, events, card redesign (11 Oct) | Built and tested |
+| User uploads, Review Uploads, blocking, new legal pages (24 Oct) | Database + website live; app in build 3.0.0 started 24 Oct |
+| Testing | In progress |
+| Release | Not started |
 
 ### Next steps (in order)
-1. Build **2.2.0 (45)** (`git pull`, then build + submit; no `npm install` needed). Database side is already done.
-2. Test on 45: X/sound hide with overlay; centre play/pause stays paused; Reel ad page after 5 videos; My Jokes Dashboard + My content + item Statistics (real numbers ~30 s after viewing; "Example data" switch for pitches); admin Stats page shows the same views; shared video link on the website plays.
-2b. Use the app to fill real statistics (own views count during testing).
-3. Security fix for open issues A and B (database only). If column grants are used, include `video_path` (website shared-link page reads it).
-4. Android build and test (also check iPad layout).
-5. Delete the 5 test videos and files; set final version; merge `feature/video` into `main`; tag `video-v<version>`; submit to stores.
-6. Before real creator payouts: restore own-view exclusion (step 3 record_views), add App Attest / Play Integrity check (Edge Function), held + reviewed payouts, Terms update, accountant advice.
-6b. **Smarter feed (planned 11 Oct, not started):** weighted random order instead of the plain 6-hour shuffle. Score per item = (1) quality: votes per time shown (😂 +3, 🙂 +2, 😐 0, 😕 −1), new items start at average; (2) freshness boost fading over a few days; (3) ~1 in 5 slots for new / rarely-seen items (fair chance for new creators); (4) skip items this phone saw recently (content_views); (5) followed creators shown more; (6) variety: not two from same creator in a row, mix of types, reported items down. 1–4 + 6 are database-only (no build, could also help live app); 5 needs build 47+. Gap: favourites live only on phones — send favourite counts to the database later.
-6c. **Creator uploads (agreed 11 Oct, not started):** (a) FIRST fix open issue B (users can change every field of their own posts). (b) Creator flag on profile, set only by Andy in admin after Content Creator Agreement + identity check. (c) Per-creator setting chosen by Andy: "approval needed" or "publish straight away" (high-profile comedians = straight away). (d) Creators may only add new files to their own folder in memes/videos buckets (no replace/delete). (e) Upload in the app: Add Joke → "Submit a meme or video" opens an uploader for creators (file, description, language); others keep the current message. (f) Pending creator posts appear in admin Approve page; admin page to grant creator status.
-7. Later: decide whether to remove the old non-_v2 functions once most users have updated; optional My Jokes "Video" label; consider removing the meme loophole after the security fix.
+1. Finish the iOS build, then `eas submit --platform ios --latest`, install from TestFlight.
+2. Test: Add Content tab (3 options; Add Joke Back button); upload a meme (library + camera) and a video (trim, shrinking progress, preview) → shows **Pending** in My Profile → Content; approve/reject in **Review Uploads** → appears / stays hidden; mark yourself Trusted → next upload goes live straight away; Blocked → upload refused. Block a user from "⋯" and from a profile → posts vanish; Settings → Blocked users → Unblock; Hide this post on an anonymous joke → Show again. Archive a popular joke in My Profile (now works). Terms + Privacy pages in app match website. Also still to check from earlier: Reel ad after 5 videos, dashboard numbers, admin Stats.
+3. Fix security **issue A** (column grants; keep `video_path` readable).
+4. Update Community Guidelines (app + website) for memes and videos (same banned list as Terms) — consider making it a json file like the Terms.
+5. Android build and test (video shrinking, upload, blocking; iPad layout too).
+6. Release: set final version, merge `feature/video` into `main`, tag `video-v<version>`, submit to stores.
+7. Before real creator payouts: restore own-view exclusion, App Attest / Play Integrity check, held + reviewed payouts, separate creator payment terms, solicitor + accountant advice.
+8. Later: paid automatic upload scanner; auto-hide after several reports; Block / Hide inside Reel; smarter feed (weighted order, plan from 11 Oct: quality, freshness, fair chance for new items, skip recently seen, followed creators more, variety); remove old non-_v2 functions once most users updated; Supabase Pro if bandwidth runs short.
 
-## 9. Advertising (AdMob)
+## 12. Advertising (AdMob)
 
-- Native ads inside feeds: Home every 6 items, Favourites and Profile every 7. `ADS_ENABLED` is currently **true** in all three files (the 2.0.1 release had it false).
+- Native ads: Home every 6 items, Favourites and Profile every 7, Reel full-screen ad every 5 videos. `ADS_ENABLED = true`.
 - iOS App ID ca-app-pub-3866370568277471~1621348903; Android App ID ca-app-pub-3866370568277471~5935732508; unit ca-app-pub-3866370568277471/6271957624.
-- Ad component: `components/FeedAdSlot.native.tsx` (NativeAdView holds all assets; iOS validator issue fixed and confirmed working).
-- Website: AdSense applied; cookie consent linked to Google consent mode.
+- Website: AdSense, cookie consent linked to Google consent mode.
 
-## 10. History (condensed, before 4 Oct 2026)
+## 13. History (condensed)
 
-- Config unified (Donkey App, com.donkeyapp.app); iOS TestFlight + App Store; Android closed testing started (needs 12 testers / 14 days).
-- iOS fixes: safe area, navigation taps, date parsing, Settings sign-in refresh, Supabase session persistence.
-- Language system: 20 native-name languages, FlatList picker with Save, separate Add Joke language, database migrated to native names; first-run language tutorial.
-- Names: Recently Added, Favourites, Profile use Supabase functions returning display_name (no app-side joins).
-- Privacy: added_by_email no longer stored; public_profiles view with security_invoker; is_admin protected.
-- Admin: OTP login, approve panel (default Approve, SQL generation), language correction panel, Add Meme, messages.
-- UI: small-phone vote layout, splash 4.5 s, Favourites back button, scroll indicators hidden, Delete Account only when signed in.
-- Website: feed-based redesign mirroring the app, favourites, user pages, About page, legal pages, daily refresh, AdSense readiness.
-- 2.0.1 (13) first production release with ads off; later versions up to 2.1.11 (42) are live.
+- Before 4 Oct: config unified; iOS live (2.0.1 first release, up to 2.1.11 build 42); Android closed testing started; language system (20 languages); names via database functions; privacy fixes; admin portal; website redesign.
+- 4 Oct: video master plan; video_path column, videos bucket, _v2 functions, Reel; admin Add Video; 164 memes approved; security issues A + B found.
+- 10 Oct: website video share page; Reel ads; view counting + admin Stats; creator dashboard.
+- 11 Oct: version 3.0.0; EAS auto build numbers; My Profile with Profile tab; public profiles, pictures, socials, followers, events, Follow on cards; feed jump fixed.
 
-## 11a. Session log — 11 Oct 2026
+## 14. Session log — 24 Oct 2026
 
-- Add Joke: confirm box (Go Back / Submit) and language picker now centred on screen for long jokes; new "Submit a meme or video" button with Content Creator Agreement / identity message and link to Contact Us (f6fc12a).
-- Build 45 failed on submit (number already used). Fixed for good: EAS raises build numbers automatically; Settings shows the real installed version + build (expo-application, needs `npm install`) (6cae68d). Andy built the next build after that.
-- My Jokes → **My Profile** with Profile tab; Settings account section removed; public profile page with header + type switch; profile pictures (new packages: expo-image-picker, expo-image-manipulator, base64-arraybuffer → `npm install` needed). Not built yet.
-- Social links, Followers (with privacy switches), Events, card redesign with Follow button, take-or-choose profile photo. New package @react-native-community/datetimepicker. Not built yet.
-- Home feed jump after ~50 items fixed (84d5a74): Recently Added + ad slots no longer reshuffle above the reader when the next batch loads. **Not built yet — goes in the next build.**
-
-## 11. Session log — 10 Oct 2026
-
-- Main commits: app `feature/video` b7a06f8 (+ this log); website `main` a5a5867.
-
-- Website shared-link page shows videos (live, website `main` d72b2d7).
-- Reel: full-screen ad page every 5 videos (app d34468b).
-- View counting: database SQL + undo (tested locally, not yet run), app counting (5d7c744), admin Stats page with example data (website 3a1380a).
-- In-app creator dashboard on My Jokes (+ 2 database functions applied via connector).
-- Decisions: points 1/1/3/5, highest level only; build 45 waits so ads + views + dashboard go in one build.
-
-## 12. Session log — 4 Oct 2026
-
-- Created the video master plan; Phase 1 protection; full inspection of app, database, storage, admin and website.
-- Database: video_path column; filters on 3 live functions; videos bucket + admin upload rule; 4 _v2 functions + get_reel_videos (later with description); 164 memes approved.
-- Admin: Add Video page (+ descriptions), menu tile; Add Meme now saves approved.
-- App: expo-video, VideoCard, ReelViewer, Video sound setting, shared joke actions, retrying player, Reel overlay with buttons and pause; versions 2.2.0 (43, 44 built and tested; 45 prepared).
-- Security check done; open issues A and B recorded, fix agreed before release.
-- GitHub (both repos) and Supabase connected to Claude.
-- Last commits: app `feature/video` 39ef2b6 (+ this log); website `main` a3039e7.
-
-## 11b. Session log — 24 Oct 2026
-
-- Issue B fixed in database (jokes_guard trigger, applied via connector, tested in a rolled-back transaction).
-- User uploads database side applied + tested (`supabase/uploads-migration.sql` / `uploads-rollback.sql`):
-  - Meme loophole CLOSED (9 functions + public read rule now need is_visible = true; only 1 old rejected meme was affected).
-  - profiles `upload_trusted` (posts go live at once) and `uploads_blocked` — only Andy can set them (SQL / admin).
-  - Storage: signed-in users may only ADD files in `u/<user id>/` in memes and videos buckets (no replace/delete/list).
-  - `submit_upload(type, file, poster, description, language)` = the only way to create a user meme/video; checks file is theirs, unused, mp4 for video, description ≤100, cap 20 per 24 h; returns pending or published.
-  - `archive_my_joke(id)`: My Profile archive was failing (pre-existing); app must call this function (next build).
-- App (not built yet): tab **Add Content** (`app/(tabs)/add-content.tsx`) with Add a joke / Add a meme / Add a video; Add Joke page hidden from tab bar, got a Back button, "Submit a meme or video" message removed; Home menu item now "Add Content". New screen `app/upload.tsx` + `lib/uploads.ts`: choose from phone (meme also camera), meme shrunk to JPEG ≤1440 px, iPhone video trimmed to 60 s and shrunk to 540p MP4, preview picture made on the phone, language, description ≤100, "I made this / have permission + Community Guidelines" tick box, manual-approval note. Language list moved to `lib/languages.ts`. My Profile archive now uses `archive_my_joke`. New package **expo-video-thumbnails** → `npm install` needed. app.json: microphone permission text added (was off), photo/camera texts mention memes/videos.
-- Android note: no video shrinking on Android yet, so only short clips fit under 25 MB — sort out during Android testing.
-- Admin **Review Uploads** page live (website 0fc1c0a, `donkey-admin/review.html`, menu tile): waiting memes/videos oldest first with picture / playable video, description, uploader + history; Approve / Reject / Block buttons; Uploaders tab with search (email/name) and Trusted / Blocked switches. Unlike older admin pages it saves directly through admin-only functions (`supabase/review-migration.sql` / `review-rollback.sql`: admin_check, admin_pending_uploads, admin_review_upload, admin_uploaders, admin_set_uploader — applied + tested). Old Approve page is now for jokes only.
-- Rejected uploads keep their files in storage (delete in Supabase dashboard if needed).
-- Admin account id is a210e13b-077f-4463-ba58-523dbcdfb1a1 (the 1b01e76f… id above owns the test videos).
-- Video limits: **90 s / 50 MB** (free-plan maximum). Videos bucket raised 25 → 50 MB (applied, `supabase/video-limit-50mb.sql`). Admin Add Video same limits, target 20 MB (website 9e58804).
-- **Phone shrinks every video before upload** (new packages **react-native-compressor** + **react-native-nitro-modules**, plugin in app.json): MP4, max 720p, max 2.5 Mbit/s, sized to stay under 45 MB (90 s ≈ 30 MB); second smaller try if needed; progress shown. Works on iPhone and Android, so the Android no-shrinking problem is solved. Supabase Pro not needed for file size (may still be needed later for bandwidth).
-- **New Terms + Privacy Policy (24 Oct 2026)**, same text in app and website: sources `lib/terms.json` and `lib/privacy.json`; app pages `app/terms.tsx` / `app/privacy.tsx` use `components/legal/LegalScreen.tsx`; website `terms.html`, `conditions.html` (most links use this) and `privacy.html` are regenerated with `python3 scripts/build-web-legal.py lib/<file>.json ../przybyszandy-lang.github.io/<page>.html` (website be5f197). Privacy now covers profiles, memes/videos, phone ID + view counting, blocks, phone-only data, AdMob/AdSense/Analytics, lawful bases, providers (Supabase London, Google, Vercel, GitHub Pages), retention, deletion, 13+/18+ uploads, UK rights + ICO. Terms Adds: age 13+ (under 18 with parent permission), **uploads 18+**, manual approval of memes/videos, trusted uploaders, banned content list (nudity/sexual, children, violence, hate, harassment, people without consent, others' material, deepfakes, illegal, spam), licence incl. technical changes, removal + anonymous keeping of popular jokes, copyright notice + complaints, enforcement, **no payments now; possible future revenue sharing under separate terms**, liability, England & Wales law. Upload tick box now includes "18 or over" + Terms link. Advice: have a solicitor review before payouts; add the legal owner's name (person or company) as data controller once decided.
-- **Blocking (personal, this phone only)** — `lib/blocks.ts`: "⋯" on every feed card (Home, Recently Added, Favourites) → Block <name> (confirm) or Hide this post (also for anonymous jokes); profile page "Block <name>" / "You blocked… Unblock"; blocked people's posts hidden on Home, Favourites, profiles and Reel; **Settings → Blocked users** (`app/blocked.tsx`) to unblock + "Show again" hidden posts. Lists on phone: `donkey:blocked-users:v1`, `donkey:hidden-posts:v1`; event `blocksChanged`. Database (`supabase/blocks-migration.sql` / `blocks-rollback.sql`, applied + tested): table `user_blocks` (phone id + blocked user, no direct access), `record_block()` (also removes follows both ways for signed-in blockers); admin lists now include **blocked_by_count** (shown on Review Uploads cards + Uploaders "Blocked by" column, website 0520730).
-- Not yet: Community Guidelines don't mention memes/videos; no auto-hide after several reports; no block/hide button inside Reel (posts of blocked people are skipped there).
-- Next: build (npm install needed) and test uploads end to end.
-- Agreed upload plan (replaces 6c "creators only"): everyone can upload memes/videos; ALL go to manual approval in admin; trusted uploaders (met by Andy in person/Teams) publish straight away; later a paid automatic scanner checks every upload; no small daily limit, only a high safety cap against storage abuse; message telling users approval is manual and may take a while.
-- App plan: "Add Joke" tab → "Add Content" with three options: Add a joke (current page, remove the special-account message), Add a meme, Add a video.
+- Issue B fixed (jokes_guard trigger); meme loophole closed.
+- User uploads: database (submit_upload, storage folders, trusted/blocked flags, archive_my_joke), app (Add Content tab, upload screen, phone video shrinking, 90 s / 50 MB), admin Review Uploads page; videos bucket 50 MB.
+- Blocking users / hiding posts (app + record_block + admin counts).
+- New Terms and Privacy Policy, shared text for app and website (terms.html, conditions.html, privacy.html live).
+- 5 test videos deleted from database.
+- Last commits: app `feature/video` (this log); website `main` be5f197.
