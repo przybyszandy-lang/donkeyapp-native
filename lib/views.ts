@@ -48,7 +48,7 @@ function randomId(): string {
   return out;
 }
 
-function getDeviceId(): Promise<string> {
+export function getDeviceId(): Promise<string> {
   if (!deviceIdPromise) {
     deviceIdPromise = (async () => {
       try {

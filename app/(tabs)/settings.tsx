@@ -284,6 +284,18 @@ useEffect(() => {
 
       <Pressable
         style={[styles.row, darkRowStyle]}
+        onPress={() => router.push("/blocked")}
+      >
+        <Text style={[styles.label, darkLabelStyle]}>Blocked users</Text>
+        <MaterialIcons
+          name="chevron-right"
+          size={20}
+          color={darkMode ? "#bdbdbd" : "#666"}
+        />
+      </Pressable>
+
+      <Pressable
+        style={[styles.row, darkRowStyle]}
         onPress={() => router.push("/guidelines")}
       >
         <Text style={[styles.label, darkLabelStyle]}>

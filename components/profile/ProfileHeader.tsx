@@ -16,6 +16,7 @@ import {
 } from "../../lib/profile";
 import { palette, Segmented } from "../creator/ui";
 import Avatar from "./Avatar";
+import { confirmBlockUser, isUserBlocked, unblockUser, useBlocks } from "../../lib/blocks";
 import { FollowButton } from "./CardAuthor";
 
 export type ProfileTypeFilter = "all" | "joke" | "meme" | "video";
@@ -67,6 +68,8 @@ export default function ProfileHeader({
   const [expanded, setExpanded] = useState(false);
   const me = useFollows();
   const isMe = !!me && me === userId;
+  useBlocks();
+  const blocked = isUserBlocked(userId);
 
   // Follower count updates straight away when you tap Follow.
   const followers =
@@ -127,10 +130,33 @@ export default function ProfileHeader({
         </View>
       </View>
 
-      {profile && !isMe ? (
+      {profile && !isMe && !blocked ? (
         <View style={styles.followButtonBox}>
           <FollowButton userId={userId} darkMode={darkMode} />
         </View>
+      ) : null}
+
+      {!isMe ? (
+        blocked ? (
+          <View style={[styles.blockedBox, { borderColor: p.border }]}>
+            <Text style={[styles.blockedText, { color: p.text, fontSize: 14 * textScale }]}>
+              You blocked {name}. Their posts are hidden for you.
+            </Text>
+            <Text
+              style={[styles.blockLink, { color: p.accent, fontSize: 14 * textScale }]}
+              onPress={() => unblockUser(userId)}
+            >
+              Unblock
+            </Text>
+          </View>
+        ) : (
+          <Text
+            style={[styles.blockLink, styles.blockLinkMuted, { color: p.muted, fontSize: 13 * textScale }]}
+            onPress={() => confirmBlockUser(userId, name)}
+          >
+            Block {name}
+          </Text>
+        )
       ) : null}
 
       {bio ? (
@@ -275,6 +301,22 @@ const styles = StyleSheet.create({
   },
   followButtonBox: {
     marginTop: 14,
+  },
+  blockedBox: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 6,
+  },
+  blockedText: {
+    fontFamily: "OpenSans_500Medium",
+  },
+  blockLink: {
+    fontFamily: "OpenSans_600SemiBold",
+  },
+  blockLinkMuted: {
+    marginTop: 10,
   },
   socialRow: {
     flexDirection: "row",

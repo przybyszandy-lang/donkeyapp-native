@@ -24,6 +24,7 @@ import { router, useFocusEffect } from "expo-router";
 
 import FeedAdSlot from "../../components/FeedAdSlot";
 import CardAuthor from "../../components/profile/CardAuthor";
+import { isHiddenPost, useBlocks } from "../../lib/blocks";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
 import { FAVOURITES_CHANGED_EVENT } from "../../lib/jokeActions";
@@ -117,14 +118,17 @@ export default function FavouritesScreen() {
   const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
   const ADS_ENABLED = true;
 
+  const blocksVersion = useBlocks();
+
   const finalFeed = useMemo(() => {
+    const visible = favouriteJokes.filter((item) => !isHiddenPost(item));
     if (!ADS_ENABLED) {
-      return favouriteJokes;
+      return visible;
     }
 
     const withAds: JokeRow[] = [];
 
-    favouriteJokes.forEach((item, index) => {
+    visible.forEach((item, index) => {
       withAds.push(item);
 
       if ((index + 1) % 7 === 0) {
@@ -141,7 +145,8 @@ export default function FavouritesScreen() {
     });
 
     return withAds;
-  }, [favouriteJokes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favouriteJokes, blocksVersion]);
 
   const textScale =
     textSize === "Small" ? 0.9 :
@@ -314,6 +319,7 @@ export default function FavouritesScreen() {
           displayName={item.display_name}
           darkMode={darkMode}
           textScale={textScale}
+          postId={item.id}
         />
 
 {item.content_type === "meme" && item.image_path ? (

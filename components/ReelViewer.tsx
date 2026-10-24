@@ -18,6 +18,7 @@
 // Only the video on screen holds a player. Closing Reel removes every player,
 // so no sound can keep playing.
 
+import { isHiddenPost, useBlocks } from "../lib/blocks";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -168,9 +169,13 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
   const [failedAdIds, setFailedAdIds] = useState<Set<string>>(new Set());
 
   // Videos with an ad page after every AD_EVERY videos.
+  const blocksVersion = useBlocks();
+
   const items = useMemo<ReelItem[]>(() => {
     const list: ReelItem[] = [];
-    videos.forEach((v, i) => {
+    // the video the person tapped always stays; others from blocked people / hidden posts are skipped
+    const visible = videos.filter((v, i) => i === 0 || !isHiddenPost(v));
+    visible.forEach((v, i) => {
       list.push(v);
       if (ADS_ENABLED && (i + 1) % AD_EVERY === 0) {
         const adId = `ad-${(i + 1) / AD_EVERY}`;
@@ -178,7 +183,8 @@ export default function ReelViewer({ startVideo, language, onClose }: Props) {
       }
     });
     return list;
-  }, [videos, failedAdIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos, failedAdIds, blocksVersion]);
 
   const itemsRef = useRef<ReelItem[]>([]);
   const indexRef = useRef(0);

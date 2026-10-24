@@ -1,9 +1,12 @@
 // Top row of a feed card: profile picture + name (tap = open profile) + Follow button.
 // Anonymous posts show a blank face and no Follow button. Your own posts show no Follow button.
+// "⋯" (when postId is given) opens Block user / Hide this post; not shown on your own posts.
+import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { showPostMenu } from "../../lib/blocks";
 import { isFollowing, toggleFollow, useCardAvatar, useFollows } from "../../lib/follows";
 import Avatar from "./Avatar";
 
@@ -52,12 +55,15 @@ export default function CardAuthor({
   displayName,
   darkMode,
   textScale,
+  postId,
 }: {
   userId: string | null;
   displayName: string | null | undefined;
   darkMode: boolean;
   textScale: number;
+  postId?: string;
 }) {
+  const me = useFollows();
   const avatarUpdatedAt = useCardAvatar(userId);
   const named = !!userId && !!displayName && displayName !== "Anonymous";
   const name = named ? (displayName as string) : "Anonymous";
@@ -83,6 +89,17 @@ export default function CardAuthor({
         </Text>
       </Pressable>
       {named ? <FollowButton userId={userId as string} darkMode={darkMode} small /> : null}
+      {postId && !(me && userId === me) ? (
+        <Pressable
+          onPress={() => showPostMenu({ id: postId, userId, name: named ? name : null })}
+          hitSlop={8}
+          style={styles.more}
+          accessibilityRole="button"
+          accessibilityLabel="More options"
+        >
+          <MaterialIcons name="more-horiz" size={24} color={darkMode ? "#aaa" : "#777"} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -99,6 +116,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  more: {
+    paddingLeft: 2,
   },
   name: {
     flexShrink: 1,

@@ -33,6 +33,7 @@ import {
 
 import FeedAdSlot from "../../components/FeedAdSlot";
 import CardAuthor from "../../components/profile/CardAuthor";
+import { isHiddenPost, useBlocks } from "../../lib/blocks";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
 import { FAVOURITES_CHANGED_EVENT, VOTES_CHANGED_EVENT } from "../../lib/jokeActions";
@@ -156,6 +157,8 @@ const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
   // Builds the feed batch by batch. Earlier batches never change when a new one
   // arrives, so the list does not jump while scrolling.
+  const blocksVersion = useBlocks();
+
   const finalFeed = useMemo(() => {
     const shownIds = new Set<string>();
     const usedRecentIds = new Set<string>();
@@ -170,13 +173,18 @@ const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
         const candidate = recentJokes[recentPointer];
         recentPointer += 1;
         if (shownIds.has(candidate.id) || usedRecentIds.has(candidate.id)) continue;
+        if (isHiddenPost(candidate)) continue;
         usedRecentIds.add(candidate.id);
         recentPool.push({ ...candidate, isRecentlyAdded: true });
       }
 
       const recentIds = new Set(recentPool.map((item) => item.id));
       const normalPool = page.filter(
-        (item) => !recentIds.has(item.id) && !shownIds.has(item.id) && !usedRecentIds.has(item.id)
+        (item) =>
+          !recentIds.has(item.id) &&
+          !shownIds.has(item.id) &&
+          !usedRecentIds.has(item.id) &&
+          !isHiddenPost(item)
       );
 
       let normalIndex = 0;
@@ -225,7 +233,9 @@ const combinedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
     });
 
     return withAds;
-  }, [jokePages, recentJokes, ADS_ENABLED]);
+    // blocksVersion: rebuild when someone is blocked or a post is hidden
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jokePages, recentJokes, ADS_ENABLED, blocksVersion]);
 
   const knownIds = useMemo(() => new Set<string>(), []);
   const addToKnownIds = (rows: JokeRow[]) => {
@@ -587,6 +597,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
           displayName={item.display_name}
           darkMode={darkMode}
           textScale={textScale}
+          postId={item.id}
         />
 
 {/* Meme image */}

@@ -46,6 +46,15 @@ supabase.auth.onAuthStateChange(() => {
   ensureLoaded();
 });
 
+// After blocking someone: forget that I follow them (the database removed it already).
+export function forgetFollow(userId: string) {
+  if (!followingIds.has(userId)) return;
+  const next = new Set(followingIds);
+  next.delete(userId);
+  followingIds = next;
+  DeviceEventEmitter.emit(FOLLOWS_CHANGED_EVENT);
+}
+
 export function getMyUserId() {
   return myUserId;
 }

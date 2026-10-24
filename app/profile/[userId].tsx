@@ -31,6 +31,7 @@ import { useIsFocused } from "@react-navigation/native";
 
 import FeedAdSlot from "../../components/FeedAdSlot";
 import ProfileHeader, { ProfileTypeFilter } from "../../components/profile/ProfileHeader";
+import { isHiddenPost, isUserBlocked, useBlocks } from "../../lib/blocks";
 import ReelViewer from "../../components/ReelViewer";
 import VideoCard from "../../components/VideoCard";
 import { FAVOURITES_CHANGED_EVENT, VOTES_CHANGED_EVENT } from "../../lib/jokeActions";
@@ -147,12 +148,19 @@ export default function ProfileScreen() {
 
   const ADS_ENABLED = true;
 
+  const blocksVersion = useBlocks();
+  const profileBlocked = isUserBlocked(userId as string);
+
   const shownJokes = useMemo(
-    () =>
-      typeFilter === "all"
-        ? jokes
-        : jokes.filter((j) => (j.content_type ?? "joke") === typeFilter),
-    [jokes, typeFilter]
+    () => {
+      if (profileBlocked) return [];
+      const visible = jokes.filter((j) => !isHiddenPost(j));
+      return typeFilter === "all"
+        ? visible
+        : visible.filter((j) => (j.content_type ?? "joke") === typeFilter);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [jokes, typeFilter, profileBlocked, blocksVersion]
   );
 
   const finalFeed = useMemo(() => {
@@ -860,7 +868,9 @@ export default function ProfileScreen() {
             }
             ListEmptyComponent={
               <View style={styles.centerBox}>
-                <Text style={styles.smallNote}>Nothing to show here yet.</Text>
+                <Text style={styles.smallNote}>
+                  {profileBlocked ? "Posts from people you block are hidden." : "Nothing to show here yet."}
+                </Text>
               </View>
             }
           />
