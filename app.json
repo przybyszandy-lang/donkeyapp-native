@@ -62,7 +62,8 @@
           "microphonePermission": "Donkey App needs access to your microphone so videos you record have sound."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "react-native-compressor"
     ],
     "experiments": {
       "typedRoutes": true,

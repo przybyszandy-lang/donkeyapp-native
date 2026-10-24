@@ -6,6 +6,7 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import { Platform } from "react-native";
+import { Video } from "react-native-compressor";
 import { supabase } from "./supabase";
 
 export type UploadType = "meme" | "video";
@@ -13,7 +14,8 @@ export type UploadType = "meme" | "video";
 export const MAX_DESCRIPTION = 100;
 export const MAX_VIDEO_SECONDS = 90;
 const MAX_MEME_BYTES = 5 * 1024 * 1024; // memes bucket limit
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // videos bucket limit (needs Supabase Pro)
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // videos bucket limit (free plan maximum)
+const TARGET_VIDEO_BYTES = 45 * 1024 * 1024; // aim a little below the limit
 const MEME_MAX_WIDTH = 1440;
 const POSTER_WIDTH = 720;
 
@@ -109,16 +111,21 @@ export async function pickMeme(source: "camera" | "library"): Promise<PreparedMe
   };
 }
 
-// Lets the person choose (or record) a video. iPhone shrinks it to 540p MP4 and lets them trim it
-// to 90 seconds. Returns null if they cancelled.
-export async function pickVideo(source: "camera" | "library"): Promise<PreparedVideo | null> {
+// Lets the person choose (or record) a video, then shrinks it on the phone to an MP4 of at most
+// 720p and at most 50 MB (90 seconds comes out around 30 MB). iPhone also offers trimming.
+// onProgress gets 0–1 while shrinking. Returns null if they cancelled.
+export async function pickVideo(
+  source: "camera" | "library",
+  onProgress?: (fraction: number) => void
+): Promise<PreparedVideo | null> {
   await askPermission(source, "video");
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ["videos"],
     allowsEditing: Platform.OS === "ios",
     videoMaxDuration: MAX_VIDEO_SECONDS,
-    videoExportPreset: ImagePicker.VideoExportPreset.H264_960x540,
-    videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+    // keep the original here; our own shrinking below gives a better result
+    videoExportPreset: ImagePicker.VideoExportPreset.Passthrough,
+    videoQuality: ImagePicker.UIImagePickerControllerQualityType.High,
     quality: 1,
   };
   const picked =
@@ -133,16 +140,10 @@ export async function pickVideo(source: "camera" | "library"): Promise<PreparedV
   if (seconds > MAX_VIDEO_SECONDS + 1) {
     throw new Error(`Videos can be up to ${MAX_VIDEO_SECONDS} seconds long. Please trim it and try again.`);
   }
-  if (asset.fileSize && asset.fileSize > MAX_VIDEO_BYTES) {
-    throw new Error("This video is too large (max 100 MB). Please choose a shorter clip.");
-  }
-  const lowerName = (asset.fileName ?? asset.uri).toLowerCase();
-  const mime = (asset.mimeType ?? "").toLowerCase();
-  if (!(mime === "video/mp4" || lowerName.endsWith(".mp4") || lowerName.endsWith(".m4v"))) {
-    throw new Error("This video format is not supported. Please choose an MP4 video.");
-  }
 
-  const thumb = await VideoThumbnails.getThumbnailAsync(asset.uri, {
+  const uri = await shrinkVideo(asset.uri, seconds, onProgress);
+
+  const thumb = await VideoThumbnails.getThumbnailAsync(uri, {
     time: Math.min(1000, Math.max(0, (seconds * 1000) / 2)),
     quality: 0.9,
   });
@@ -150,13 +151,68 @@ export async function pickVideo(source: "camera" | "library"): Promise<PreparedV
 
   return {
     type: "video",
-    uri: asset.uri,
+    uri,
     posterUri: poster.uri,
     posterBase64: poster.base64!,
-    width: asset.width || thumb.width,
-    height: asset.height || thumb.height,
+    width: thumb.width || asset.width,
+    height: thumb.height || asset.height,
     seconds,
   };
+}
+
+function asFileUri(path: string) {
+  return path.startsWith("file://") || path.startsWith("content://") ? path : `file://${path}`;
+}
+
+async function fileBytes(uri: string): Promise<number> {
+  const blob = await fetch(uri).then((r) => r.blob());
+  return blob.size;
+}
+
+// Shrinks a video to MP4, max 720p. Picks a picture quality that keeps the file under the limit
+// for its length (and never above a good-enough 2.5 Mbit/s, to save viewers' data).
+// If it still comes out too big, it tries once more smaller.
+async function shrinkVideo(
+  sourceUri: string,
+  seconds: number,
+  onProgress?: (fraction: number) => void
+): Promise<string> {
+  const length = Math.max(seconds, 1);
+  const budgetBits = TARGET_VIDEO_BYTES * 8 * 0.9; // leave room for sound and file overhead
+  const tries = [
+    { maxSize: 1280, bitrate: Math.min(2_500_000, Math.floor(budgetBits / length)) },
+    { maxSize: 960, bitrate: Math.min(1_200_000, Math.floor((budgetBits * 0.6) / length)) },
+  ];
+
+  for (let i = 0; i < tries.length; i++) {
+    const attempt = tries[i];
+    let result: string;
+    try {
+      result = await Video.compress(
+        sourceUri,
+        {
+          compressionMethod: "manual",
+          maxSize: attempt.maxSize,
+          bitrate: Math.max(attempt.bitrate, 400_000),
+          minimumFileSizeForCompress: 0,
+        },
+        (progress: number) => {
+          // second try shows as the last part of the bar
+          const p = Math.max(0, Math.min(1, progress > 1 ? progress / 100 : progress));
+          onProgress?.(i === 0 ? p : 0.9 + p * 0.1);
+        }
+      );
+    } catch {
+      throw new Error("Could not prepare this video. Please try a different one.");
+    }
+    const uri = asFileUri(result);
+    const size = await fileBytes(uri);
+    if (size <= MAX_VIDEO_BYTES) {
+      onProgress?.(1);
+      return uri;
+    }
+  }
+  throw new Error("This video is too large even after shrinking. Please choose a shorter clip.");
 }
 
 function newFileName(userId: string, extension: string, stamp: string) {
@@ -183,7 +239,7 @@ export async function submitUpload(
   } else {
     const body = await fetch(prepared.uri).then((r) => r.arrayBuffer());
     if (body.byteLength > MAX_VIDEO_BYTES) {
-      throw new Error("This video is too large (max 100 MB). Please choose a shorter clip.");
+      throw new Error("This video is too large (max 50 MB). Please choose a shorter clip.");
     }
     file = newFileName(userId, "mp4", stamp);
     const { error: videoError } = await supabase.storage

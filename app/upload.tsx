@@ -47,6 +47,7 @@ export default function UploadScreen() {
 
   const [prepared, setPrepared] = useState<PreparedUpload | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const [prepProgress, setPrepProgress] = useState<number | null>(null);
   const [description, setDescription] = useState("");
   const [language, setLanguage] = useState("English");
   const [languageOpen, setLanguageOpen] = useState(false);
@@ -85,13 +86,18 @@ export default function UploadScreen() {
     if (preparing || uploading) return;
     setErrorText(null);
     setPreparing(true);
+    setPrepProgress(null);
     try {
-      const picked = type === "meme" ? await pickMeme(source) : await pickVideo(source);
+      const picked =
+        type === "meme"
+          ? await pickMeme(source)
+          : await pickVideo(source, (fraction) => setPrepProgress(fraction));
       if (picked) setPrepared(picked);
     } catch (e: any) {
       setErrorText(uploadErrorMessage(e));
     } finally {
       setPreparing(false);
+      setPrepProgress(null);
     }
   };
 
@@ -268,7 +274,11 @@ export default function UploadScreen() {
         {preparing && (
           <View style={styles.busyRow}>
             <ActivityIndicator />
-            <Text style={[styles.busyText, t(14), muted]}>Preparing your {word}…</Text>
+            <Text style={[styles.busyText, t(14), muted]}>
+              {prepProgress === null
+                ? `Preparing your ${word}…`
+                : `Shrinking your video… ${Math.round(prepProgress * 100)}% (please keep the app open)`}
+            </Text>
           </View>
         )}
 
