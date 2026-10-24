@@ -184,7 +184,7 @@ Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html`,
 - Share links for videos open the website page, which plays the video (done 10 Oct).
 - **Reel ads:** full-screen native ad page after every 5 videos (portrait creatives, "Sponsored", close button only). Ad that fails ahead of the user is skipped; if the user is on it, "Swipe up for more videos".
 - **View counting:** impressions (≥50% visible for 1 s) in Home/Favourites/Profile; videos also 3 s / 50% / full (time actually played) in feed and Reel. Sent in batches every 30 s / 50 items / on background.
-- 5 test videos exist (English, Andy's account, 4 Oct 2026). **Delete them (rows + files) before release.**
+- 5 test videos (4 Oct 2026): database rows, views and reports **deleted 24 Oct 2026**. Their 10 files (videos/ and posters/ starting 1791125380734, 1791125381325, 1791125381765, 1791143738106, 1791143738529) must be deleted by hand in Supabase dashboard → Storage → videos (SQL deletion of files is blocked). 4 real videos remain.
 
 ## 8. Video project status
 
