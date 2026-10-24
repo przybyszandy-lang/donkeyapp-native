@@ -13,6 +13,11 @@ import {
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import termsData from "../lib/terms.json";
+
+// Same text as the website terms page (website copy is generated from lib/terms.json).
+type TermsSection = { title: string; paragraphs: string[]; list?: string[]; after?: string[] };
+const TERMS = termsData as { updated: string; intro: string[]; sections: TermsSection[] };
 
 export default function TermsScreen() {
 
@@ -68,166 +73,46 @@ export default function TermsScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: card }]}>
+        <Text style={[styles.title, { color: text, fontSize: 22 * textScale }]}>
+          Terms & Conditions
+        </Text>
 
-        <Text
-          style={[
-            styles.title,
-            { color: text, fontSize: 22 * textScale }
-          ]}
-        >
-Terms & Conditions
-</Text>
+        <Text style={[styles.smallNote, { color: subtext, fontSize: 13 * textScale }]}>
+          Last updated: {TERMS.updated}
+        </Text>
 
-<Text style={[styles.smallNote, { color: subtext, fontSize: 13 * textScale }]}>
-  Last updated: April 2026
-</Text>
+        {TERMS.intro.map((p, i) => (
+          <Text key={`intro-${i}`} style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
+            {p}
+          </Text>
+        ))}
 
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  These Terms and Conditions govern your use of DonkeyApp. By using the platform,
-  you agree to these Terms. If you do not agree, please do not use DonkeyApp.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  1. Purpose of the Platform
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  DonkeyApp is a platform where users can submit and read jokes. The goal
-  of the platform is to promote humour and allow users to share funny content
-  with others.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  2. Entertainment Disclaimer
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  DonkeyApp is a humour and entertainment platform. Content may include satire,
-  exaggeration, or controversial humour. All content is intended for entertainment
-  purposes only and should not be interpreted as factual, educational, political,
-  or professional advice.
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  Some users may find certain jokes offensive or inappropriate. Due to the nature
-  of humour and user-generated content, it is not possible to prevent all content
-  that may offend individuals. If you are likely to be offended by humour, satire,
-  or controversial topics, you should not use the platform.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  3. User Accounts
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  Some features require creating an account. When using an account you are
-  responsible for maintaining the security of your login and for any content
-  submitted through your account.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  4. User-Generated Content and Moderation
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  Content on DonkeyApp is primarily user-generated. While moderation is applied,
-  we cannot guarantee that all content will be suitable for all audiences.
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  DonkeyApp reserves the right to review, reject, remove, or restrict any content
-  at its sole discretion. Content may be removed if deemed inappropriate,
-  offensive, harmful, or inconsistent with platform guidelines.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  5. Submitting Jokes
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  Users may submit jokes to be published on DonkeyApp. Jokes that comply with
-  these Terms and the Community Guidelines may be published on the platform.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  6. Acceptable Content
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  Content submitted to DonkeyApp must comply with the Community Guidelines.
-  Content that violates these guidelines may be removed.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  7. Account Suspension
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  DonkeyApp reserves the right to suspend or remove accounts that repeatedly
-  violate platform rules or misuse the platform.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  8. Reporting Content
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  Users may report content using the report button available on jokes.
-  Reported content will be reviewed and may be removed if it violates
-  platform rules or guidelines.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  9. Ownership of Content
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  When you submit a joke to DonkeyApp, you confirm that the joke is either
-  your original creation or a commonly known joke without enforceable copyright.
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  By submitting content, you grant DonkeyApp a non-exclusive, worldwide,
-  royalty-free licence to display, store, and distribute that content.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  10. Sharing Content
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  You are free to share jokes found on DonkeyApp for personal use. Automated
-  scraping or bulk copying is not permitted.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  11. Advertising
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  DonkeyApp may display advertising to support platform operation.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  12. Changes to These Terms
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  These Terms and Conditions may change from time to time. Continued use
-  of DonkeyApp constitutes acceptance of any changes.
-</Text>
-
-<Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
-  13. Contact Us
-</Text>
-
-<Text style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
-  If you have questions about these Terms and Conditions, please use the
-  Contact Us page within the app.
-</Text>
-
+        {TERMS.sections.map((section) => (
+          <View key={section.title}>
+            <Text style={[styles.section, { color: text, fontSize: 18 * textScale }]}>
+              {section.title}
+            </Text>
+            {section.paragraphs.map((p, i) => (
+              <Text key={`p-${i}`} style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
+                {p}
+              </Text>
+            ))}
+            {section.list?.map((item, i) => (
+              <View key={`l-${i}`} style={styles.bulletRow}>
+                <Text style={[styles.paragraph, styles.bullet, { color: text, fontSize: 15 * textScale }]}>•</Text>
+                <Text style={[styles.paragraph, styles.bulletText, { color: text, fontSize: 15 * textScale }]}>
+                  {item}
+                </Text>
+              </View>
+            ))}
+            {section.after?.map((p, i) => (
+              <Text key={`a-${i}`} style={[styles.paragraph, { color: text, fontSize: 15 * textScale }]}>
+                {p}
+              </Text>
+            ))}
+          </View>
+        ))}
       </View>
-
     </ScrollView>
   );
 }
@@ -291,6 +176,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  bulletRow: {
+    flexDirection: "row",
+    paddingLeft: 4,
+  },
+  bullet: {
+    width: 16,
+    marginBottom: 6,
+  },
+  bulletText: {
+    flex: 1,
+    marginBottom: 6,
+  },
   paragraph: {
     lineHeight: 22,
     marginBottom: 10,

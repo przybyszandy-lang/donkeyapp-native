@@ -317,7 +317,12 @@ export default function UploadScreen() {
             color={agreed ? "#1877f2" : darkMode ? "#bdbdbd" : "#777"}
           />
           <Text style={[styles.agreeText, t(14), light]}>
-            I made this {word} or have permission to share it, and it follows the{" "}
+            I am 18 or over, I made this {word} or have permission to share it (including from anyone
+            shown in it), and it follows the{" "}
+            <Text style={styles.linkText} onPress={() => router.push("/terms")}>
+              Terms
+            </Text>{" "}
+            and{" "}
             <Text style={styles.linkText} onPress={() => router.push("/guidelines")}>
               Community Guidelines
             </Text>
