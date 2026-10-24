@@ -41,4 +41,4 @@ start = page.index("    </section>", page.index('<section class="hero">')) + len
 end = page.index("  </main>")
 page = page[:start] + "\n\n<!-- TERMS START (generated from donkeyapp-native lib/terms.json) -->\n" + "\n\n".join(sections) + "\n<!-- TERMS END -->\n" + page[end:]
 open(page_path, "w", encoding="utf-8").write(page)
-print("terms.html updated:", len(data["sections"]), "sections")
+print(os.path.basename(page_path), "updated:", len(data["sections"]), "sections")
