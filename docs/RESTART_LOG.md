@@ -263,6 +263,12 @@ Test results (build 44, 4 Oct 2026): feed videos, Settings Video sound, speaker 
 ## 11b. Session log — 24 Oct 2026
 
 - Issue B fixed in database (jokes_guard trigger, applied via connector, tested in a rolled-back transaction).
-- Found (pre-existing, not fixed): My Jokes "archive" (well-rated jokes) is refused by the update policy because it sets user_id to empty.
+- User uploads database side applied + tested (`supabase/uploads-migration.sql` / `uploads-rollback.sql`):
+  - Meme loophole CLOSED (9 functions + public read rule now need is_visible = true; only 1 old rejected meme was affected).
+  - profiles `upload_trusted` (posts go live at once) and `uploads_blocked` — only Andy can set them (SQL / admin).
+  - Storage: signed-in users may only ADD files in `u/<user id>/` in memes and videos buckets (no replace/delete/list).
+  - `submit_upload(type, file, poster, description, language)` = the only way to create a user meme/video; checks file is theirs, unused, mp4 for video, description ≤100, cap 20 per 24 h; returns pending or published.
+  - `archive_my_joke(id)`: My Profile archive was failing (pre-existing); app must call this function (next build).
+- Next: app — "Add Content" tab with Add a joke / Add a meme / Add a video, then admin approval page for pending memes/videos + trusted switch.
 - Agreed upload plan (replaces 6c "creators only"): everyone can upload memes/videos; ALL go to manual approval in admin; trusted uploaders (met by Andy in person/Teams) publish straight away; later a paid automatic scanner checks every upload; no small daily limit, only a high safety cap against storage abuse; message telling users approval is manual and may take a while.
 - App plan: "Add Joke" tab → "Add Content" with three options: Add a joke (current page, remove the special-account message), Add a meme, Add a video.
