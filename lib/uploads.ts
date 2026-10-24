@@ -11,9 +11,9 @@ import { supabase } from "./supabase";
 export type UploadType = "meme" | "video";
 
 export const MAX_DESCRIPTION = 100;
-export const MAX_VIDEO_SECONDS = 60;
+export const MAX_VIDEO_SECONDS = 90;
 const MAX_MEME_BYTES = 5 * 1024 * 1024; // memes bucket limit
-const MAX_VIDEO_BYTES = 25 * 1024 * 1024; // videos bucket limit
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // videos bucket limit (needs Supabase Pro)
 const MEME_MAX_WIDTH = 1440;
 const POSTER_WIDTH = 720;
 
@@ -110,7 +110,7 @@ export async function pickMeme(source: "camera" | "library"): Promise<PreparedMe
 }
 
 // Lets the person choose (or record) a video. iPhone shrinks it to 540p MP4 and lets them trim it
-// to 60 seconds. Returns null if they cancelled.
+// to 90 seconds. Returns null if they cancelled.
 export async function pickVideo(source: "camera" | "library"): Promise<PreparedVideo | null> {
   await askPermission(source, "video");
   const options: ImagePicker.ImagePickerOptions = {
@@ -134,7 +134,7 @@ export async function pickVideo(source: "camera" | "library"): Promise<PreparedV
     throw new Error(`Videos can be up to ${MAX_VIDEO_SECONDS} seconds long. Please trim it and try again.`);
   }
   if (asset.fileSize && asset.fileSize > MAX_VIDEO_BYTES) {
-    throw new Error("This video is too large (max 25 MB). Please choose a shorter clip.");
+    throw new Error("This video is too large (max 100 MB). Please choose a shorter clip.");
   }
   const lowerName = (asset.fileName ?? asset.uri).toLowerCase();
   const mime = (asset.mimeType ?? "").toLowerCase();
@@ -183,7 +183,7 @@ export async function submitUpload(
   } else {
     const body = await fetch(prepared.uri).then((r) => r.arrayBuffer());
     if (body.byteLength > MAX_VIDEO_BYTES) {
-      throw new Error("This video is too large (max 25 MB). Please choose a shorter clip.");
+      throw new Error("This video is too large (max 100 MB). Please choose a shorter clip.");
     }
     file = newFileName(userId, "mp4", stamp);
     const { error: videoError } = await supabase.storage

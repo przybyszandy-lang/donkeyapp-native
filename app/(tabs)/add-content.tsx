@@ -57,7 +57,7 @@ export default function AddContentScreen() {
     {
       key: "video",
       title: "Add a video",
-      subtitle: "Upload a short video (up to 60 seconds).",
+      subtitle: "Upload a short video (up to 90 seconds).",
       icon: "videocam",
       onPress: () => router.push({ pathname: "/upload", params: { type: "video" } }),
     },
