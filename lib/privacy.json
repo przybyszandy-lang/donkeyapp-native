@@ -1,0 +1,139 @@
+{
+  "updated": "24 October 2026",
+  "intro": [
+    "This Privacy Policy explains what personal information Donkey App (the mobile app and DonkeyApp.com, \"we\", \"us\") collects, why, who can see it and what your rights are. We are responsible for your personal information (the \"data controller\"). You can reach us any time through the Contact Us page.",
+    "In short: we collect what the platform needs to work and stay safe. Your email address is never shown publicly and we never sell your data."
+  ],
+  "sections": [
+    {
+      "title": "1. Account information",
+      "paragraphs": [
+        "When you create an account or sign in, we store your email address. It is used to send one-time login codes and to contact you about your account or content if needed. It is never shown to other users.",
+        "You choose a display name (1 to 25 characters). It is public and appears with everything you post."
+      ]
+    },
+    {
+      "title": "2. Your public profile (optional)",
+      "paragraphs": [
+        "You can add a profile picture, an \"about me\" text, a website, social media usernames and upcoming events. These are public. Your profile also shows when you joined, how many jokes, memes and videos you posted, votes received and follower numbers. You can choose to hide your followers and following lists; the numbers stay visible."
+      ]
+    },
+    {
+      "title": "3. Jokes, memes and videos you post",
+      "paragraphs": [
+        "We store what you post (jokes, pictures, videos, descriptions and language) so it can be checked, shown to other users and managed by you. Pictures and videos are made smaller on your phone before upload, and we create a preview picture for each video.",
+        "Pictures and videos can show other people. Only post them if you have their permission. If someone appears in content without agreeing, they can ask us to remove it.",
+        "If you post a joke without an account, the app keeps a random code on your phone so we can limit spam. It does not identify you."
+      ]
+    },
+    {
+      "title": "4. Information collected when you use the app",
+      "paragraphs": [
+        "The app creates a random phone ID. It is not linked to your phone's hardware, your name or your advertising ID. We use it to:"
+      ],
+      "list": [
+        "count views: which posts were shown and, for videos, how much was watched, on which screen, the app version and platform, and the date. If you are signed in, views are also linked to your account. This creates the statistics creators see and stops fake views;",
+        "record when you block someone, so we can spot users many people block (if you are signed in, the block is also linked to your account);",
+        "limit misuse, such as too many views or uploads from one phone."
+      ],
+      "after": [
+        "Votes are counted without recording who voted. Reports record the post and the reason, not who reported it. Who you follow is stored with your account.",
+        "Our service providers also keep short-term technical logs, such as IP addresses and times of requests, for security and to fix problems."
+      ]
+    },
+    {
+      "title": "5. Information kept only on your phone",
+      "paragraphs": [
+        "Some things are stored only on your phone and are not sent to us: your favourites, which posts you voted on, your settings (language, dark mode, text size, video sound), unfinished joke drafts, and your lists of blocked users and hidden posts. Deleting the app removes them."
+      ]
+    },
+    {
+      "title": "6. Advertising, cookies and analytics",
+      "paragraphs": [
+        "The app shows ads from Google AdMob and the website shows ads from Google AdSense. Google may use your device's advertising identifier, IP address and cookies to show and measure ads. In the UK and EU you are asked for your consent before personalised ads are shown, and you can change your choice later.",
+        "The website uses cookies and Google Analytics to understand how it is used (for example, pages visited, device type and general location). You can accept or reject non-essential cookies using the privacy controls on the website."
+      ]
+    },
+    {
+      "title": "7. Messages you send us",
+      "paragraphs": [
+        "When you use Contact Us, we store your message and any name or email address you choose to give, so we can reply and deal with your request."
+      ]
+    },
+    {
+      "title": "8. Why we use your information",
+      "list": [
+        "to provide Donkey App and your account (needed to provide the service you asked for);",
+        "to check content, keep the platform safe, prevent spam, fake views and abuse, and show creators their statistics (our legitimate interests);",
+        "to show personalised ads and use analytics cookies (only with your consent);",
+        "to meet legal duties, such as dealing with illegal content and reporting it to the authorities where required."
+      ],
+      "paragraphs": []
+    },
+    {
+      "title": "9. Who can see your information",
+      "paragraphs": [
+        "Public: your display name, profile details, posts and follower numbers. Private: your email address, phone ID, views, blocks and messages. Our team can see what is needed to run and moderate the platform, including uploader email addresses when checking uploads.",
+        "We do not sell your personal information. We share it only with the service providers below, or where the law requires."
+      ]
+    },
+    {
+      "title": "10. Service providers",
+      "paragraphs": [
+        "We use trusted providers who process data only to provide their services to us:"
+      ],
+      "list": [
+        "Supabase: login, database and file storage (stored in London, UK);",
+        "Google: AdMob, AdSense and Google Analytics;",
+        "Vercel and GitHub Pages: website hosting;",
+        "Apple and Google: app downloads and updates through their app stores."
+      ],
+      "after": [
+        "Some of these providers may process data outside the UK, for example in the United States. Where that happens, they use safeguards approved under UK data protection law."
+      ]
+    },
+    {
+      "title": "11. How long we keep information",
+      "paragraphs": [
+        "Account and profile information is kept while your account exists. Posts are kept until you or we remove them; popular jokes may be kept without your name, as explained in the Terms. View statistics are kept as long as they are needed for creator statistics and any future creator payments, and are then deleted or made anonymous. Messages are kept as long as needed to deal with them. Removed files and backups may take a short time to be cleared."
+      ]
+    },
+    {
+      "title": "12. Deleting your account",
+      "paragraphs": [
+        "You can delete your account in the app (My Profile, then Delete Account). Your email address and profile information (name, picture, about me, links, events, follows) are removed from active systems within 72 hours."
+      ]
+    },
+    {
+      "title": "13. Children",
+      "paragraphs": [
+        "Donkey App is for people aged 13 and over, and uploading memes or videos is for people aged 18 and over. If we learn that someone under 13 has an account, we will delete it."
+      ]
+    },
+    {
+      "title": "14. Your rights",
+      "paragraphs": [
+        "Under UK data protection law you can ask to see the personal information we hold about you, have it corrected or deleted, restrict or object to how we use it, receive a copy to take elsewhere, and withdraw consent at any time. To do this, use the Contact Us page and we will reply within one month.",
+        "If you are unhappy with how we handle your information, you can complain to the Information Commissioner's Office (ico.org.uk). We would appreciate the chance to sort it out first."
+      ]
+    },
+    {
+      "title": "15. Security",
+      "paragraphs": [
+        "We protect your information with access rules on our database, encrypted connections and limited admin access. No online service can be completely secure, so please keep your email account safe, as it is how you sign in."
+      ]
+    },
+    {
+      "title": "16. Changes to this policy",
+      "paragraphs": [
+        "We may update this Privacy Policy from time to time. The date at the top shows the latest version. If changes are significant, we will let you know in the app or on the website."
+      ]
+    },
+    {
+      "title": "17. Contact us",
+      "paragraphs": [
+        "If you have questions about this Privacy Policy or your information, please use the Contact Us page in the app or on the website."
+      ]
+    }
+  ]
+}

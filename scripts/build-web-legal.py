@@ -1,17 +1,24 @@
-# Rebuilds the terms text on the website (terms.html) from lib/terms.json, so app and web match.
-# Usage: python3 scripts/build-web-terms.py <path to przybyszandy-lang.github.io/terms.html>
+# Rebuilds the legal text on a website page from the same file the app uses, so app and web match.
+# Usage (website repo next to this one):
+#   python3 scripts/build-web-legal.py lib/terms.json   ../przybyszandy-lang.github.io/terms.html
+#   python3 scripts/build-web-legal.py lib/terms.json   ../przybyszandy-lang.github.io/conditions.html
+#   python3 scripts/build-web-legal.py lib/privacy.json ../przybyszandy-lang.github.io/privacy.html
 import html, json, os, re, sys
 
-here = os.path.dirname(os.path.abspath(__file__))
-data = json.load(open(os.path.join(here, "..", "lib", "terms.json"), encoding="utf-8"))
-page_path = sys.argv[1]
+json_path = sys.argv[1]
+data = json.load(open(json_path, encoding="utf-8"))
+page_path = sys.argv[2]
+source = os.path.basename(json_path)
 page = open(page_path, encoding="utf-8").read()
 
 def e(text):
     t = html.escape(text, quote=False)
     t = t.replace("Contact Us page", '<a href="contact.html">Contact Us</a> page')
     t = t.replace("Community Guidelines", '<a href="guidelines.html">Community Guidelines</a>')
-    t = t.replace("Privacy Policy", '<a href="privacy.html">Privacy Policy</a>')
+    if "privacy" not in source:
+        t = t.replace("Privacy Policy", '<a href="privacy.html">Privacy Policy</a>')
+    t = t.replace("ico.org.uk", '<a href="https://ico.org.uk" rel="noopener">ico.org.uk</a>')
+    t = t.replace("the Terms", 'the <a href="conditions.html">Terms</a>') if "privacy" in source else t
     return t
 
 hero_right = ['          <div class="hero-right">', "            <h2>Before you use the platform</h2>"]
@@ -39,6 +46,6 @@ page = re.sub(r'          <div class="hero-right">.*?\n          </div>\n(?=    
               "\n".join(hero_right) + "\n", page, count=1, flags=re.S)
 start = page.index("    </section>", page.index('<section class="hero">')) + len("    </section>")
 end = page.index("  </main>")
-page = page[:start] + "\n\n<!-- TERMS START (generated from donkeyapp-native lib/terms.json) -->\n" + "\n\n".join(sections) + "\n<!-- TERMS END -->\n" + page[end:]
+page = page[:start] + f"\n\n<!-- TERMS START (generated from donkeyapp-native lib/{source}) -->\n" + "\n\n".join(sections) + "\n<!-- TERMS END -->\n" + page[end:]
 open(page_path, "w", encoding="utf-8").write(page)
-print(os.path.basename(page_path), "updated:", len(data["sections"]), "sections")
+print(os.path.basename(page_path), "updated from", source + ":", len(data["sections"]), "sections")
