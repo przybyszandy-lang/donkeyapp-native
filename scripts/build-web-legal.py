@@ -17,6 +17,8 @@ def e(text):
     t = t.replace("Community Guidelines", '<a href="guidelines.html">Community Guidelines</a>')
     if "privacy" not in source:
         t = t.replace("Privacy Policy", '<a href="privacy.html">Privacy Policy</a>')
+    t = t.replace("donkeyapp.com/risk_assessment.html", '<a href="risk_assessment.html">donkeyapp.com/risk_assessment.html</a>')
+    t = t.replace("andy@donkeyapp.com", '<a href="mailto:andy@donkeyapp.com">andy@donkeyapp.com</a>')
     t = t.replace("ico.org.uk", '<a href="https://ico.org.uk" rel="noopener">ico.org.uk</a>')
     t = t.replace("the Terms", 'the <a href="conditions.html">Terms</a>') if "privacy" in source else t
     return t

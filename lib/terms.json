@@ -1,7 +1,8 @@
 {
-  "updated": "24 October 2026",
+  "updated": "27 October 2026",
   "intro": [
-    "These Terms and Conditions (\"Terms\") govern your use of the Donkey App mobile app and the website DonkeyApp.com (together, \"Donkey App\", \"we\", \"us\"). By using Donkey App you agree to these Terms, our Community Guidelines and our Privacy Policy. If you do not agree, please do not use Donkey App."
+    "These Terms and Conditions (\"Terms\") govern your use of the Donkey App mobile app and the website DonkeyApp.com (together, \"Donkey App\", \"we\", \"us\"). By using Donkey App you agree to these Terms, our Community Guidelines and our Privacy Policy. If you do not agree, please do not use Donkey App.",
+    "Donkey App is run by Andrzej Przybysz. You can contact us at andy@donkeyapp.com or through the Contact Us page."
   ],
   "sections": [
     {
@@ -41,6 +42,7 @@
       "paragraphs": [
         "Signed-in users aged 18 or over can upload memes (pictures) and short videos. Videos are shortened in size on your phone before upload and may be up to 90 seconds long.",
         "Every upload is checked by hand by our team before it appears to other users. This can take some time, and we may decline any upload without giving a reason.",
+        "We check jokes, memes and videos by hand before they are published to comply with the online safety risk assessment we have carried out under the UK Online Safety Act 2023. You can read it at donkeyapp.com/risk_assessment.html.",
         "Trusted uploaders: we may choose to allow some uploaders, usually after confirming who they are, to publish without checking each upload first. Trusted uploaders must follow exactly the same rules. Their content can still be reported and removed, and we can withdraw trusted status at any time.",
         "We may block any account from uploading if it breaks these Terms or the Community Guidelines."
       ]
@@ -141,7 +143,7 @@
     {
       "title": "19. Contact us",
       "paragraphs": [
-        "If you have questions about these Terms, please use the Contact Us page in the app or on the website."
+        "If you have questions about these Terms, or want to report illegal or harmful content, email andy@donkeyapp.com or use the Contact Us page in the app or on the website. Donkey App is run by Andrzej Przybysz."
       ]
     }
   ]
