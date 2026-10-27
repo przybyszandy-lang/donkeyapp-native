@@ -3,7 +3,7 @@
 Single source of truth for project state, working rules, environment and latest work.
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
-**Last updated:** 24 Oct 2026 (end of session)
+**Last updated:** 27 Oct 2026
 **Live (store) app:** 2.1.11 build 42 — branch `main`
 **Test app:** version **3.0.0** — branch `feature/video`. Build numbers are set automatically by EAS. Andy started the iOS build on 24 Oct with everything below (user uploads, blocking, new Terms + Privacy).
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
@@ -232,3 +232,7 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 - New Terms and Privacy Policy, shared text for app and website (terms.html, conditions.html, privacy.html live).
 - 5 test videos deleted from database.
 - Last commits: app `feature/video` (this log); website `main` be5f197.
+
+## 15. Session log — 27 Oct 2026
+
+- Removed all payout wording from the app (My Profile → Dashboard): Points tile now says "from views of your posts"; "Your share" card shows share of points only (no ad profit / pool text). Terms keep the "possible future revenue sharing" line. Needs the next app build.

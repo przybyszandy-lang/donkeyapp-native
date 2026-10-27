@@ -37,7 +37,6 @@ type Props = {
   onOpenItem: (item: MyContentRow) => void;
 };
 
-const CREATOR_SHARE = 0.7;
 
 export default function CreatorDashboard({ items, darkMode, demo, refreshKey, onOpenItem }: Props) {
   const p = palette(darkMode);
@@ -173,7 +172,7 @@ export default function CreatorDashboard({ items, darkMode, demo, refreshKey, on
       ) : (
         <>
           <View style={styles.tiles}>
-            <Tile darkMode={darkMode} label="Points" color="#8b5cf6" value={fmtNum(totals.points)} sub="decide your payout" />
+            <Tile darkMode={darkMode} label="Points" color="#8b5cf6" value={fmtNum(totals.points)} sub="from views of your posts" />
             <Tile darkMode={darkMode} label="Shown" color="#64748b" value={fmtNum(totals.impressions)} sub="times on screen" />
             <Tile
               darkMode={darkMode}
@@ -193,15 +192,14 @@ export default function CreatorDashboard({ items, darkMode, demo, refreshKey, on
 
           <Card darkMode={darkMode}>
             <View style={styles.rowBetween}>
-              <SectionTitle darkMode={darkMode} title="Your share" sub="Of all points earned on Donkey App" />
+              <SectionTitle darkMode={darkMode} title="Your share" sub="Of all points on Donkey App" />
               <Text style={[styles.bigPct, { color: p.text }]}>{(share * 100).toFixed(share < 0.1 ? 2 : 1)}%</Text>
             </View>
             <View style={[styles.track, { backgroundColor: p.soft }]}>
               <View style={[styles.fill, { width: `${Math.min(100, share * 100)}%` }]} />
             </View>
             <Text style={[styles.note, { color: p.muted }]}>
-              Creators share {Math.round(CREATOR_SHARE * 100)}% of ad profit, split by points. Your share of that pool in
-              this period: {(share * 100).toFixed(2)}%.
+              Your share of all points in this period: {(share * 100).toFixed(2)}%.
             </Text>
           </Card>
 
