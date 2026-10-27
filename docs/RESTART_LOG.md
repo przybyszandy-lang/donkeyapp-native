@@ -3,9 +3,9 @@
 Single source of truth for project state, working rules, environment and latest work.
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
-**Last updated:** 27 Oct 2026
+**Last updated:** 27 Oct 2026 (end of session)
 **Live (store) app:** 2.1.11 build 42 — branch `main`
-**Test app:** version **3.0.0** — branch `feature/video`. Build numbers are set automatically by EAS. Andy started the iOS build on 24 Oct with everything below (user uploads, blocking, new Terms + Privacy).
+**Version 3.0.0 submitted to App Store review on 27 Oct 2026** — branch `feature/video` (to be merged into `main` by Andy). Build numbers are set automatically by EAS.
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
 
 ---
@@ -86,7 +86,7 @@ Tags/branches: `main` = live app. Tag `pre-video-v2.1.11` (commit 041ea70) = sta
 - `app/(tabs)/add-content.tsx` — **Add Content**: Add a joke / Add a meme / Add a video + "checked by hand" note.
 - `app/(tabs)/add-joke.tsx` — joke submission (unchanged except a "← Back" to Add Content; creator message removed). `edit-joke.tsx` — edit own joke.
 - `app/upload.tsx` (`?type=meme|video`) + `lib/uploads.ts` — upload screen: sign-in needed; choose from phone (meme also camera); meme → JPEG ≤1440 px ≤5 MB; video → iPhone trim to 90 s, then **shrunk on the phone** with react-native-compressor (MP4, max 720p, max 2.5 Mbit/s, sized under 45 MB, second smaller try, progress "Shrinking your video… %"); preview picture made with expo-video-thumbnails; language; description ≤100; tick box "18 or over / made it or have permission incl. people shown / Terms + Guidelines"; files to `u/<user id>/<time>_<random>.jpg|.mp4`; then RPC `submit_upload` → "pending" or "published".
-- `app/(tabs)/my-jokes.tsx` — **My Profile**: tabs Profile (`components/profile/MyProfileEditor.tsx`: picture, name, about me, website, socials, events, Delete Account) / Dashboard / Content (own items incl. pending memes/videos, filters, sort, detail). Archive of popular jokes uses RPC `archive_my_joke`.
+- `app/(tabs)/my-jokes.tsx` — **My Profile** (Home menu item "My Content"): tabs Profile (`components/profile/MyProfileEditor.tsx`: picture, name, about me, website, socials, events, Delete Account) / **People** (`components/creator/PeopleTab.tsx`, RPC `get_my_follow_stats`) / Dashboard / Content (own items incl. pending memes/videos, filters, sort, detail). Archive of popular jokes uses RPC `archive_my_joke`.
 - `components/creator/` — `CreatorDashboard.tsx`, `ContentDetail.tsx`, `ui.tsx`; `components/StatsBarChart.tsx`; `lib/creatorStats.ts`.
 - `app/(tabs)/settings.tsx` — joke language, Video sound, dark mode, text size, **Blocked users**, legal pages, Contact Us, version.
 - `app/blocked.tsx` — Blocked users list (Unblock) + hidden posts ("Show again").
@@ -131,6 +131,7 @@ A video row: `video_path` = MP4, `image_path` = preview picture, `content` = des
 | get_reel_videos | Reel | visible, unflagged videos, newest first |
 | rate_joke, report_joke | all | counts only (who voted/reported not stored). No auto-hide after reports |
 | submit_upload(type, file, poster, description, language) | upload screen | only way for users to create memes/videos; file must be theirs in `u/<uid>/`, unused, MP4 for video; description ≤100; cap 20 per 24 h; trusted → live, others → pending; blocked uploaders refused |
+| get_my_follow_stats() | My Profile → People | signed-in user only: followers, following, new followers per day (current followers only) |
 | archive_my_joke(id) | My Profile | hides + removes owner of own popular joke (old direct update was refused) |
 | record_block(device_id, blocked_id, blocked) | blocking | saves/removes block in `user_blocks`; signed-in blocker loses follows both ways |
 | admin_check, admin_pending_uploads, admin_review_upload, admin_uploaders, admin_set_uploader | admin Review Uploads | admin-only; lists include blocked_by_count |
@@ -155,7 +156,7 @@ A video row: `video_path` = MP4, `image_path` = preview picture, `content` = des
 - Business model idea (not promised to users): gross margin = ad income − direct costs; 70% creators by points, 30% Donkey App.
 
 ### SQL files in repo (`supabase/`, each with undo)
-video-migration, views-migration, profile-migration, social-migration, **guard-migration**, **uploads-migration**, **review-migration**, **blocks-migration**, **video-limit-50mb** (24 Oct ones applied + tested).
+video-migration, views-migration, profile-migration, social-migration, **guard-migration**, **uploads-migration**, **review-migration**, **blocks-migration**, **video-limit-50mb**, **people-migration** (27 Oct) (24 Oct ones applied + tested).
 
 ## 6. Admin portal (repo przybyszandy-lang.github.io, folder donkey-admin)
 
@@ -165,7 +166,7 @@ Email OTP login; access only if profiles.is_admin = true. Menu tiles: Moderation
 - **Add Video:** MP4, ≤ 90 s, ≤ 50 MB, warns over 20 MB, auto preview, description ≤100; SQL inserts approved rows (owner 1b01e76f…). Video prep: HandBrake Fast 720p30.
 - **Stats:** views, points, best content, detail, creator share, payout calculator, example data.
 
-Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html?userId=`, `joke.html` → `api/devjoke.js` (shared links incl. videos). Legal: `conditions.html` (most links), `terms.html`, `privacy.html`, `guidelines.html`. Website has no meme/video upload (app only).
+Website: `index.html`/`api/devjoke.js` (feed), `favourites.html`, `userID.html?userId=`, `joke.html` → `api/devjoke.js` (shared links incl. videos). Legal: `conditions.html` (most links), `terms.html`, `privacy.html`, `guidelines.html`, **`risk_assessment.html`** (public Online Safety risk assessment, noindex/nofollow, not in sitemap; linked from Terms section 6). Website has no meme/video upload (app only).
 
 ## 7. Content rules (as built 24 Oct)
 
@@ -197,17 +198,18 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 | --- | --- |
 | Video phases 1–13 (database, admin, app, Reel, website links) | Done |
 | Profiles, followers, events, card redesign (11 Oct) | Built and tested |
-| User uploads, Review Uploads, blocking, new legal pages (24 Oct) | Database + website live; app in build 3.0.0 started 24 Oct |
-| Testing | In progress |
-| Release | Not started |
+| User uploads, Review Uploads, blocking, new legal pages (24 Oct) | Live on database + website; in app 3.0.0 |
+| People tab, follow fix, payout wording removed, Terms provider + risk assessment (27 Oct) | In app 3.0.0 |
+| Testing | Done on TestFlight (iOS) |
+| Release | iOS 3.0.0 submitted to App Store review 27 Oct; Android not started |
 
 ### Next steps (in order)
-1. Finish the iOS build, then `eas submit --platform ios --latest`, install from TestFlight.
-2. Test: Add Content tab (3 options; Add Joke Back button); upload a meme (library + camera) and a video (trim, shrinking progress, preview) → shows **Pending** in My Profile → Content; approve/reject in **Review Uploads** → appears / stays hidden; mark yourself Trusted → next upload goes live straight away; Blocked → upload refused. Block a user from "⋯" and from a profile → posts vanish; Settings → Blocked users → Unblock; Hide this post on an anonymous joke → Show again. Archive a popular joke in My Profile (now works). Terms + Privacy pages in app match website. Also still to check from earlier: Reel ad after 5 videos, dashboard numbers, admin Stats.
+1. Andy: merge `feature/video` into `main` (Codespace: `git checkout feature/video`, `git pull`, `git checkout main`, `git pull`, `git merge feature/video`, `git push`). Then watch App Store review; answer any Apple questions.
+2. Next app update (3.0.1): already includes removal of the "During testing, your own views count too" note. Older test list for reference: Add Content tab (3 options; Add Joke Back button); upload a meme (library + camera) and a video (trim, shrinking progress, preview) → shows **Pending** in My Profile → Content; approve/reject in **Review Uploads** → appears / stays hidden; mark yourself Trusted → next upload goes live straight away; Blocked → upload refused. Block a user from "⋯" and from a profile → posts vanish; Settings → Blocked users → Unblock; Hide this post on an anonymous joke → Show again. Archive a popular joke in My Profile (now works). Terms + Privacy pages in app match website. Also still to check from earlier: Reel ad after 5 videos, dashboard numbers, admin Stats.
 3. Fix security **issue A** (column grants; keep `video_path` readable).
 4. Update Community Guidelines (app + website) for memes and videos (same banned list as Terms) — consider making it a json file like the Terms.
 5. Android build and test (video shrinking, upload, blocking; iPad layout too).
-6. Release: set final version, merge `feature/video` into `main`, tag `video-v<version>`, submit to stores.
+6. Android release of 3.0.0 (Google Play). Online Safety action plan (in risk assessment doc https://claude.ai/artifact/HjfvVEyaiFqRBzb4covgs9): user numbers, check profile pictures/text, "Report profile" + auto-hide, Guidelines update, report log, solicitor review. Privacy Policy: name Andrzej Przybysz as data controller. App Store: Content Rights → Yes; DSA trader once Ltd company exists (EU availability must match). Comments feature: plan agreed in principle (18+ only, filter, report/auto-hide, admin page) — not built; reassess risk first.
 7. Before real creator payouts: restore own-view exclusion, App Attest / Play Integrity check, held + reviewed payouts, separate creator payment terms, solicitor + accountant advice.
 8. Later: paid automatic upload scanner; auto-hide after several reports; Block / Hide inside Reel; smarter feed (weighted order, plan from 11 Oct: quality, freshness, fair chance for new items, skip recently seen, followed creators more, variety); remove old non-_v2 functions once most users updated; Supabase Pro if bandwidth runs short.
 
