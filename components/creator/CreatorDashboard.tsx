@@ -289,7 +289,7 @@ export default function CreatorDashboard({ items, darkMode, demo, refreshKey, on
 
           <Text style={[styles.rules, { color: p.muted }]}>
             How points work: a joke or meme shown on screen = 1 point. Videos: watched 3 seconds = 1, half way = 3, to
-            the end = 5. Each phone counts once per item per day. During testing, your own views count too.
+            the end = 5. Each phone counts once per item per day.
           </Text>
         </>
       )}
