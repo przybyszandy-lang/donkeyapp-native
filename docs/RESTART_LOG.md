@@ -236,3 +236,6 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 ## 15. Session log — 27 Oct 2026
 
 - Removed all payout wording from the app (My Profile → Dashboard): Points tile now says "from views of your posts"; "Your share" card shows share of points only (no ad profit / pool text). Terms keep the "possible future revenue sharing" line. Needs the next app build.
+- Follow button fixed: taps were saving (database fine) but the button never changed to "Following" because the React Compiler kept the old answer. New `useIsFollowing` hook in `lib/follows.ts`, used by `CardAuthor.tsx` and `ProfileHeader.tsx`. Signed-out users still get the "Create an account to follow" message. Favourites unchanged (phone only).
+- Same hidden fault fixed for blocking: `isUserBlocked`, `getBlockedUsers`, `hiddenPostCount` now take the `useBlocks()` number (profile page, ProfileHeader, Blocked users screen).
+- Both need the next app build.

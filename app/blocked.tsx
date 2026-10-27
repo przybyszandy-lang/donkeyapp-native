@@ -15,9 +15,9 @@ import {
 export default function BlockedUsersScreen() {
   const [darkMode, setDarkMode] = useState(false);
   const [textScale, setTextScale] = useState(1);
-  useBlocks();
-  const users = getBlockedUsers();
-  const hidden = hiddenPostCount();
+  const blocksVersion = useBlocks();
+  const users = getBlockedUsers(blocksVersion);
+  const hidden = hiddenPostCount(blocksVersion);
 
   useEffect(() => {
     (async () => {

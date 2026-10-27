@@ -149,7 +149,7 @@ export default function ProfileScreen() {
   const ADS_ENABLED = true;
 
   const blocksVersion = useBlocks();
-  const profileBlocked = isUserBlocked(userId as string);
+  const profileBlocked = isUserBlocked(userId as string, blocksVersion);
 
   const shownJokes = useMemo(
     () => {

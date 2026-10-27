@@ -77,7 +77,8 @@ async function tellServer(userId: string, blocked: boolean) {
   }
 }
 
-export function isUserBlocked(userId: string | null | undefined) {
+// The optional "version" (from useBlocks) lets screens refresh the answer when blocks change.
+export function isUserBlocked(userId: string | null | undefined, _version?: number) {
   return !!userId && blockedIds.has(userId);
 }
 
@@ -87,7 +88,7 @@ export function isHiddenPost(item: { id: string; user_id?: string | null } | nul
   return hiddenPosts.has(item.id) || isUserBlocked(item.user_id);
 }
 
-export function getBlockedUsers(): BlockedUser[] {
+export function getBlockedUsers(_version?: number): BlockedUser[] {
   return [...blockedUsers].sort((a, b) => b.at.localeCompare(a.at));
 }
 
@@ -116,7 +117,7 @@ export async function hidePost(postId: string) {
   await save();
 }
 
-export function hiddenPostCount() {
+export function hiddenPostCount(_version?: number) {
   return hiddenPosts.size;
 }
 

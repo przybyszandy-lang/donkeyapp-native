@@ -113,6 +113,20 @@ export function useFollows(): string | null {
   return uid;
 }
 
+// Re-renders when follows change; returns whether I follow this user.
+// (A real state value, so the React Compiler can't keep showing an old answer.)
+export function useIsFollowing(userId: string | null | undefined): boolean {
+  const [following, setFollowing] = useState(() => isFollowing(userId));
+  useEffect(() => {
+    const update = () => setFollowing(isFollowing(userId));
+    const sub = DeviceEventEmitter.addListener(FOLLOWS_CHANGED_EVENT, update);
+    update();
+    ensureLoaded().then(update);
+    return () => sub.remove();
+  }, [userId]);
+  return following;
+}
+
 // ---------------------------------------------------------------------------
 // Profile pictures for cards
 // ---------------------------------------------------------------------------

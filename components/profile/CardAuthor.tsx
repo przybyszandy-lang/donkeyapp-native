@@ -7,7 +7,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { showPostMenu } from "../../lib/blocks";
-import { isFollowing, toggleFollow, useCardAvatar, useFollows } from "../../lib/follows";
+import { toggleFollow, useCardAvatar, useFollows, useIsFollowing } from "../../lib/follows";
 import Avatar from "./Avatar";
 
 export function FollowButton({
@@ -20,8 +20,8 @@ export function FollowButton({
   small?: boolean;
 }) {
   const me = useFollows();
+  const following = useIsFollowing(userId);
   if (me && me === userId) return null;
-  const following = isFollowing(userId);
 
   return (
     <Pressable

@@ -5,7 +5,7 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { isFollowing, useFollows } from "../../lib/follows";
+import { useFollows, useIsFollowing } from "../../lib/follows";
 import {
   BIO_PREVIEW,
   CreatorEvent,
@@ -68,12 +68,13 @@ export default function ProfileHeader({
   const [expanded, setExpanded] = useState(false);
   const me = useFollows();
   const isMe = !!me && me === userId;
-  useBlocks();
-  const blocked = isUserBlocked(userId);
+  const blocksVersion = useBlocks();
+  const blocked = isUserBlocked(userId, blocksVersion);
 
+  const iFollow = useIsFollowing(userId);
   // Follower count updates straight away when you tap Follow.
   const followers =
-    (profile?.followers_count ?? 0) + (isFollowing(userId) ? 1 : 0) - (profile?.i_follow ? 1 : 0);
+    (profile?.followers_count ?? 0) + (iFollow ? 1 : 0) - (profile?.i_follow ? 1 : 0);
   const following = profile?.following_count ?? 0;
 
   const openList = (type: "followers" | "following") => {
