@@ -25,6 +25,7 @@ import {
 } from "@expo-google-fonts/open-sans";
 
 import ContentDetail from "../../components/creator/ContentDetail";
+import PeopleTab from "../../components/creator/PeopleTab";
 import CreatorDashboard, { Thumb } from "../../components/creator/CreatorDashboard";
 import MyProfileEditor from "../../components/profile/MyProfileEditor";
 import {
@@ -77,7 +78,7 @@ export default function MyJokesScreen() {
   const [jokePendingDelete, setJokePendingDelete] = useState<MyJokeRow | null>(null);
 
   // Dashboard
-  const [tab, setTab] = useState<"profile" | "dashboard" | "content">("profile");
+  const [tab, setTab] = useState<"profile" | "people" | "dashboard" | "content">("profile");
   const [typeFilter, setTypeFilter] = useState<"all" | "joke" | "meme" | "video">("all");
   const [sortBy, setSortBy] = useState<"newest" | "points" | "votes">("newest");
   const [itemStats, setItemStats] = useState<Map<string, ItemStats>>(new Map());
@@ -657,13 +658,14 @@ export default function MyJokesScreen() {
           onChange={setTab}
           options={[
             { value: "profile", label: "Profile" },
+            { value: "people", label: "People" },
             { value: "dashboard", label: "Dashboard" },
-            { value: "content", label: `Content (${jokes.length}${hasMore ? "+" : ""})` },
+            { value: "content", label: "Content" },
           ]}
         />
       </View>
 
-      {errorText && tab !== "profile" ? (
+      {errorText && tab !== "profile" && tab !== "people" ? (
         <View
           style={[
             styles.errorBanner,
@@ -695,6 +697,8 @@ export default function MyJokesScreen() {
 
       {tab === "profile" ? (
         <MyProfileEditor userId={currentUserId} darkMode={darkMode} textScale={textScale} />
+      ) : tab === "people" ? (
+        <PeopleTab userId={currentUserId} darkMode={darkMode} />
       ) : tab === "dashboard" ? (
         jokes.length === 0 && !demo ? (
           <Text
