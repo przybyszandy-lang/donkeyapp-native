@@ -467,7 +467,7 @@ const handleSubmitConfirm = () => {
             }}
           >
             <Text style={[styles.buttonTextWhite, { fontSize: 15 * textScale }]}>
-              Go to My Jokes
+              Go to My Content
             </Text>
           </Pressable>
 

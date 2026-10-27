@@ -534,7 +534,7 @@ export default function MyJokesScreen() {
             darkMode && styles.titleDark,
           ]}
         >
-          My Jokes
+          My Profile
         </Text>
 
         <View style={styles.centerBox}>

@@ -969,7 +969,7 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
                 darkMode && { color: "#f3f3f3" },
               ]}
             >
-              My Jokes
+              My Content
             </Text>
           </Pressable>
 
