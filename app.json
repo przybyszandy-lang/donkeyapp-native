@@ -63,7 +63,13 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "react-native-compressor"
+      "react-native-compressor",
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "Donkey App uses this to show you more relevant ads. Ads help keep Donkey App free."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

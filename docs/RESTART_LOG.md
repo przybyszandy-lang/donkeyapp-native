@@ -3,7 +3,7 @@
 Single source of truth for project state, working rules, environment and latest work.
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
-**Last updated:** 27 Oct 2026 (end of session)
+**Last updated:** 28 Oct 2026
 **Live (store) app:** 2.1.11 build 42 — branch `main`
 **Version 3.0.0 submitted to App Store review on 27 Oct 2026** — branch `feature/video` (to be merged into `main` by Andy). Build numbers are set automatically by EAS.
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
@@ -249,3 +249,9 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 - Dashboard: removed the note "During testing, your own views count too." (own views still count; change later).
 - **27 Oct 22:13: version 3.0.0 submitted to App Store review** (build made before the testing-note removal, so that note is still in 3.0.0). App Store Connect: age rating 18+ (Apple; Google gave 13), DSA = non-trader for now (switch to trader when Ltd company exists), new promo text, description, What's New, keywords, review notes updated; 10 iPhone screenshots 1179×2556.
 - **Still to do:** Andy merges `feature/video` into `main` in the Codespace (Claude's push to main is refused, HTTP 403) and tags `video-v3.0.0`. Check EU availability matches the non-trader choice. Content Rights still says "no third-party content" (consider Yes now uploads exist). Privacy Policy: name Andrzej Przybysz as data controller.
+
+## 16. Session log — 28 Oct 2026
+
+- **3.0.0 rejected by Apple** (review 28 Oct, build 49, iPad Air): Guideline 5.1.2(i) — privacy label says the app tracks (Advertising Data, Device ID) but no App Tracking Transparency (ATT) prompt. Apple said it can be fixed in the next update if Andy replies asking for approval now.
+- Fix added on `feature/video`: package `expo-tracking-transparency` (plugin in app.json, iPhone text "Donkey App uses this to show you more relevant ads. Ads help keep Donkey App free."). `app/_layout.tsx` now asks for tracking permission on iOS right after the AdMob consent form. Needs a new build (version stays 3.0.0; EAS sets the build number).
+- **Review Notes for resubmission:** "The App Tracking Transparency permission is requested when the app first opens, straight after the ad consent form."

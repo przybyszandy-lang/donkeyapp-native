@@ -18,6 +18,19 @@ export default function RootLayout() {
       } catch (e) {
         console.log("Consent init failed:", e);
       }
+
+      // Apple App Tracking Transparency: ask before ads can use the
+      // advertising ID. Shown once; iOS remembers the answer.
+      if (Platform.OS === "ios") {
+        try {
+          const { requestTrackingPermissionsAsync } = await import(
+            "expo-tracking-transparency"
+          );
+          await requestTrackingPermissionsAsync();
+        } catch (e) {
+          console.log("Tracking permission request failed:", e);
+        }
+      }
     };
 
     initConsent();
