@@ -5,7 +5,7 @@ Paste this whole file at the start of a new session. It is also saved in the app
 
 **Last updated:** 28 Oct 2026
 **Live (store) app:** 2.1.11 build 42 — branch `main`
-**Version 3.0.0 submitted to App Store review on 27 Oct 2026** — branch `feature/video` (to be merged into `main` by Andy). Build numbers are set automatically by EAS.
+**Version 3.0.0 rejected 28 Oct (no tracking pop-up), fixed and resubmitted to App Store review on 28 Oct 2026 with a new build** — branch `feature/video` (to be merged into `main` by Andy). Build numbers are set automatically by EAS.
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
 
 ---
@@ -201,10 +201,10 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 | User uploads, Review Uploads, blocking, new legal pages (24 Oct) | Live on database + website; in app 3.0.0 |
 | People tab, follow fix, payout wording removed, Terms provider + risk assessment (27 Oct) | In app 3.0.0 |
 | Testing | Done on TestFlight (iOS) |
-| Release | iOS 3.0.0 submitted to App Store review 27 Oct; Android not started |
+| Release | iOS 3.0.0: rejected 28 Oct (Guideline 5.1.2(i)), resubmitted 28 Oct with tracking pop-up; Android not started |
 
 ### Next steps (in order)
-1. Andy: merge `feature/video` into `main` (Codespace: `git checkout feature/video`, `git pull`, `git checkout main`, `git pull`, `git merge feature/video`, `git push`). Then watch App Store review; answer any Apple questions.
+1. Watch the App Store review of the resubmitted 3.0.0; answer any Apple questions. On first open, check the tracking pop-up appears after the ad consent form (TestFlight). Then Andy: merge `feature/video` into `main` (Codespace: `git checkout feature/video`, `git pull`, `git checkout main`, `git pull`, `git merge feature/video`, `git push`).
 2. Next app update (3.0.1): already includes removal of the "During testing, your own views count too" note. Older test list for reference: Add Content tab (3 options; Add Joke Back button); upload a meme (library + camera) and a video (trim, shrinking progress, preview) → shows **Pending** in My Profile → Content; approve/reject in **Review Uploads** → appears / stays hidden; mark yourself Trusted → next upload goes live straight away; Blocked → upload refused. Block a user from "⋯" and from a profile → posts vanish; Settings → Blocked users → Unblock; Hide this post on an anonymous joke → Show again. Archive a popular joke in My Profile (now works). Terms + Privacy pages in app match website. Also still to check from earlier: Reel ad after 5 videos, dashboard numbers, admin Stats.
 3. Fix security **issue A** (column grants; keep `video_path` readable).
 4. Update Community Guidelines (app + website) for memes and videos (same banned list as Terms) — consider making it a json file like the Terms.
@@ -254,4 +254,7 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 
 - **3.0.0 rejected by Apple** (review 28 Oct, build 49, iPad Air): Guideline 5.1.2(i) — privacy label says the app tracks (Advertising Data, Device ID) but no App Tracking Transparency (ATT) prompt. Apple said it can be fixed in the next update if Andy replies asking for approval now.
 - Fix added on `feature/video`: package `expo-tracking-transparency` (plugin in app.json, iPhone text "Donkey App uses this to show you more relevant ads. Ads help keep Donkey App free."). `app/_layout.tsx` now asks for tracking permission on iOS right after the AdMob consent form. Needs a new build (version stays 3.0.0; EAS sets the build number).
-- **Review Notes for resubmission:** "The App Tracking Transparency permission is requested when the app first opens, straight after the ad consent form."
+- Andy built the new 3.0.0 build in the Codespace (`git checkout -- package-lock.json` needed before `git pull`), submitted it to TestFlight, selected it for 3.0.0, added Review Notes ("The App Tracking Transparency permission is requested when the app first opens, straight after the ad consent form.") and **resubmitted to App Review on 28 Oct**.
+- Replied to Apple in App Store Connect: the permission request had been left out of build 49 by mistake, is now in the new build, appears on first open after the ad consent form, privacy information is accurate and Review Notes say where the request is.
+- App privacy label in App Store Connect still says the app tracks (Advertising Data, Device ID) — correct now the pop-up exists. Keep the pop-up in all future builds.
+- Android is not affected (no tracking pop-up on Android).
