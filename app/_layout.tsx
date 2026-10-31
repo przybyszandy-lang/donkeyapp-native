@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { AppState, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DonkeySplash from "../components/DonkeySplash";
 
@@ -23,10 +23,26 @@ export default function RootLayout() {
       // advertising ID. Shown once; iOS remembers the answer.
       if (Platform.OS === "ios") {
         try {
-          const { requestTrackingPermissionsAsync } = await import(
-            "expo-tracking-transparency"
-          );
-          await requestTrackingPermissionsAsync();
+          const { getTrackingPermissionsAsync, requestTrackingPermissionsAsync } =
+            await import("expo-tracking-transparency");
+          // iOS silently ignores the request if the app is not fully on
+          // screen yet (e.g. no ad consent form shown, as in the US), so
+          // wait until the app is active, then a short pause.
+          if (AppState.currentState !== "active") {
+            await new Promise<void>((resolve) => {
+              const sub = AppState.addEventListener("change", (st) => {
+                if (st === "active") {
+                  sub.remove();
+                  resolve();
+                }
+              });
+            });
+          }
+          await new Promise((r) => setTimeout(r, 1000));
+          const current = await getTrackingPermissionsAsync();
+          if (current.status === "undetermined") {
+            await requestTrackingPermissionsAsync();
+          }
         } catch (e) {
           console.log("Tracking permission request failed:", e);
         }
