@@ -1,9 +1,9 @@
 // Top of a public profile: picture, name, joined date, about me (first ~100 characters + "more"),
-// website, counts and the All / Jokes / Memes / Videos switch.
+// website, counts, the All / Jokes / Memes / Videos switch and (when posts use 2+ languages) a language filter.
 import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useFollows, useIsFollowing } from "../../lib/follows";
 import {
@@ -53,6 +53,9 @@ export default function ProfileHeader({
   textScale,
   filter,
   onFilterChange,
+  languages = [],
+  language = "all",
+  onLanguageChange,
   events,
 }: {
   userId: string;
@@ -63,6 +66,9 @@ export default function ProfileHeader({
   textScale: number;
   filter: ProfileTypeFilter;
   onFilterChange: (f: ProfileTypeFilter) => void;
+  languages?: { name: string; count: number }[];
+  language?: string;
+  onLanguageChange?: (lang: string) => void;
 }) {
   const p = palette(darkMode);
   const [expanded, setExpanded] = useState(false);
@@ -242,6 +248,35 @@ export default function ProfileHeader({
           <Segmented darkMode={darkMode} value={filter} onChange={onFilterChange} options={options} />
         </View>
       ) : null}
+
+      {languages.length > 1 && onLanguageChange ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.langScroll}
+          contentContainerStyle={styles.langRow}
+        >
+          {[{ name: "all", count: languages.reduce((sum, l) => sum + l.count, 0) }, ...languages].map((l) => {
+            const on = l.name === language;
+            return (
+              <Pressable
+                key={l.name}
+                onPress={() => onLanguageChange(l.name)}
+                accessibilityState={{ selected: on }}
+                style={[
+                  styles.langChip,
+                  { borderColor: on ? p.accent : p.border, backgroundColor: on ? p.accentSoft : "transparent" },
+                ]}
+              >
+                <Text style={[styles.langText, { color: on ? p.accent : p.muted }]}>
+                  {l.name === "all" ? "All languages" : l.name}{" "}
+                  <Text style={styles.langCount}>{l.count}</Text>
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -375,6 +410,27 @@ const styles = StyleSheet.create({
   },
   filterBox: {
     marginTop: 14,
+  },
+  langScroll: {
+    marginTop: 10,
+    marginHorizontal: -4,
+  },
+  langRow: {
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  langChip: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  langText: {
+    fontSize: 13,
+    fontFamily: "OpenSans_600SemiBold",
+  },
+  langCount: {
+    fontFamily: "OpenSans_400Regular",
   },
   stat: {
     flex: 1,

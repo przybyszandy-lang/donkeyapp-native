@@ -50,6 +50,7 @@ type JokeRow = {
   content_type?: string;
   image_path?: string | null;
   video_path?: string | null;
+  language?: string | null;
   created_at: string;
   average: number | null;
   user_id: string | null;
@@ -75,6 +76,7 @@ export default function ProfileScreen() {
   const [jokes, setJokes] = useState<JokeRow[]>([]);
   const [publicProfile, setPublicProfile] = useState<PublicProfile | null>(null);
   const [typeFilter, setTypeFilter] = useState<ProfileTypeFilter>("all");
+  const [languageFilter, setLanguageFilter] = useState<string>("all");
   const [events, setEvents] = useState<CreatorEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -151,7 +153,8 @@ export default function ProfileScreen() {
   const blocksVersion = useBlocks();
   const profileBlocked = isUserBlocked(userId as string, blocksVersion);
 
-  const shownJokes = useMemo(
+  // Posts of the chosen type (before the language filter).
+  const typeJokes = useMemo(
     () => {
       if (profileBlocked) return [];
       const visible = jokes.filter((j) => !isHiddenPost(j));
@@ -161,6 +164,30 @@ export default function ProfileScreen() {
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [jokes, typeFilter, profileBlocked, blocksVersion]
+  );
+
+  // Languages used in those posts, most used first. The language filter only shows when there are 2 or more.
+  const languages = useMemo(() => {
+    const counts = new Map<string, number>();
+    typeJokes.forEach((j) => {
+      const lang = j.language?.trim();
+      if (lang) counts.set(lang, (counts.get(lang) ?? 0) + 1);
+    });
+    return [...counts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [typeJokes]);
+
+  // If the chosen language has nothing in the chosen type, show all languages.
+  const activeLanguage =
+    languages.length > 1 && languages.some((l) => l.name === languageFilter) ? languageFilter : "all";
+
+  const shownJokes = useMemo(
+    () =>
+      activeLanguage === "all"
+        ? typeJokes
+        : typeJokes.filter((j) => j.language?.trim() === activeLanguage),
+    [typeJokes, activeLanguage]
   );
 
   const finalFeed = useMemo(() => {
@@ -863,6 +890,9 @@ export default function ProfileScreen() {
                 textScale={textScale}
                 filter={typeFilter}
                 onFilterChange={setTypeFilter}
+                languages={languages.length > 1 ? languages : []}
+                language={activeLanguage}
+                onLanguageChange={setLanguageFilter}
                 events={events}
               />
             }
