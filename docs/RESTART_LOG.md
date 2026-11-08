@@ -3,8 +3,9 @@
 Single source of truth for project state, working rules, environment and latest work.
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
-**Last updated:** 28 Oct 2026
-**Live (store) app:** 2.1.11 build 42 — branch `main`
+**Last updated:** 8 Nov 2026
+**Live (store) app:** 2.1.11 build 42 — branch `main` (iOS App Store and Google Play production)
+**Android 3.0.0 (47):** on Google Play Internal testing since 8 Nov 2026, tested OK by Andy; publish to production planned 9 Nov.
 **Version 3.0.0 rejected 28 Oct (no tracking pop-up), fixed and resubmitted to App Store review on 28 Oct 2026 with a new build** — branch `feature/video` (to be merged into `main` by Andy). Build numbers are set automatically by EAS.
 **Master plan for video work:** "Donkey App — Video Support Master Plan" doc on claude.ai: https://claude.ai/code/artifact/010b838f-5881-4843-9ec3-ed3ca71b959a
 
@@ -118,7 +119,7 @@ A video row: `video_path` = MP4, `image_path` = preview picture, `content` = des
 4 videos exist (Andy's, 10–11 Oct). The 5 test videos were deleted 24 Oct (rows, views, reports); their 10 files remain in storage but are never shown (optional dashboard clean-up: names starting 1791125380734, 1791125381325, 1791125381765, 1791143738106, 1791143738529).
 
 ### Protection of the jokes table
-- **Trigger `jokes_guard`** (`supabase/guard-migration.sql` / `guard-rollback.sql`, 24 Oct): for app/website users (not admins, not SQL Editor) inserts are always pending jokes (type joke, no files, zero counts); updates can only change text + language (goes back to Pending) or archive. Fixes old **issue B**.
+- **Trigger `jokes_guard`** (`supabase/guard-migration.sql` / `guard-rollback.sql`, 24 Oct; fixed 8 Nov in `anon-joke-fix-migration.sql` so it only checks profiles when signed in — before that every anonymous joke failed with "permission denied for table profiles"): for app/website users (not admins, not SQL Editor) inserts are always pending jokes (type joke, no files, zero counts); updates can only change text + language (goes back to Pending) or archive. Fixes old **issue B**.
 - **Meme loophole closed** (24 Oct): all feed/recent/favourite/profile functions and the public read rule now need `is_visible = true` (marked `/* meme-loophole-closed */` in the functions).
 - Policies: public read of visible rows; users read/insert/update/delete own rows; anon insert with valid submitter token; admins read all.
 - **Open issue A (still open):** anon/authenticated can read every column of visible jokes, so `submitter_token` is readable (added_by_email empty). Fix with column grants (include `video_path`, website reads it).
@@ -128,6 +129,7 @@ A video row: `video_path` = MP4, `image_path` = preview picture, `content` = des
 | --- | --- | --- |
 | get_jokes_feed_mixed, get_recent_jokes_with_names_mixed, get_favourite_jokes_with_names_mixed, get_profile_jokes_with_name_mixed, get_profile_jokes_with_name | live app 2.1.11, website | jokes + memes only, visible only |
 | *_v2 versions of the four above | app 3.0.0 | + videos + video_path |
+| get_profile_jokes_with_name_mixed_v2 | public profile (3.0.0+) | since 8 Nov also returns `language` (last column) for the profile language filter |
 | get_reel_videos | Reel | visible, unflagged videos, newest first |
 | rate_joke, report_joke | all | counts only (who voted/reported not stored). No auto-hide after reports |
 | submit_upload(type, file, poster, description, language) | upload screen | only way for users to create memes/videos; file must be theirs in `u/<uid>/`, unused, MP4 for video; description ≤100; cap 20 per 24 h; trusted → live, others → pending; blocked uploaders refused |
@@ -156,7 +158,7 @@ A video row: `video_path` = MP4, `image_path` = preview picture, `content` = des
 - Business model idea (not promised to users): gross margin = ad income − direct costs; 70% creators by points, 30% Donkey App.
 
 ### SQL files in repo (`supabase/`, each with undo)
-video-migration, views-migration, profile-migration, social-migration, **guard-migration**, **uploads-migration**, **review-migration**, **blocks-migration**, **video-limit-50mb**, **people-migration** (27 Oct) (24 Oct ones applied + tested).
+video-migration, views-migration, profile-migration, social-migration, **guard-migration**, **uploads-migration**, **review-migration**, **blocks-migration**, **video-limit-50mb**, **people-migration** (27 Oct), **anon-joke-fix-migration** + **profile-language-migration** (8 Nov) (all applied + tested).
 
 ## 6. Admin portal (repo przybyszandy-lang.github.io, folder donkey-admin)
 
@@ -201,15 +203,15 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 | User uploads, Review Uploads, blocking, new legal pages (24 Oct) | Live on database + website; in app 3.0.0 |
 | People tab, follow fix, payout wording removed, Terms provider + risk assessment (27 Oct) | In app 3.0.0 |
 | Testing | Done on TestFlight (iOS) |
-| Release | iOS 3.0.0: rejected 28 Oct (Guideline 5.1.2(i)), resubmitted 28 Oct with tracking pop-up; Android not started |
+| Release | iOS 3.0.0: rejected 28 Oct (Guideline 5.1.2(i)), resubmitted 28 Oct with tracking pop-up. Android 3.0.0 (47): Internal testing 8 Nov, tested OK, production release planned 9 Nov |
 
 ### Next steps (in order)
 1. Watch the App Store review of the resubmitted 3.0.0; answer any Apple questions. On first open, check the tracking pop-up appears after the ad consent form (TestFlight). Then Andy: merge `feature/video` into `main` (Codespace: `git checkout feature/video`, `git pull`, `git checkout main`, `git pull`, `git merge feature/video`, `git push`).
 2. Next app update (3.0.1): already includes removal of the "During testing, your own views count too" note. Older test list for reference: Add Content tab (3 options; Add Joke Back button); upload a meme (library + camera) and a video (trim, shrinking progress, preview) → shows **Pending** in My Profile → Content; approve/reject in **Review Uploads** → appears / stays hidden; mark yourself Trusted → next upload goes live straight away; Blocked → upload refused. Block a user from "⋯" and from a profile → posts vanish; Settings → Blocked users → Unblock; Hide this post on an anonymous joke → Show again. Archive a popular joke in My Profile (now works). Terms + Privacy pages in app match website. Also still to check from earlier: Reel ad after 5 videos, dashboard numbers, admin Stats.
 3. Fix security **issue A** (column grants; keep `video_path` readable).
 4. Update Community Guidelines (app + website) for memes and videos (same banned list as Terms) — consider making it a json file like the Terms.
-5. Android build and test (video shrinking, upload, blocking; iPad layout too).
-6. Android release of 3.0.0 (Google Play). Online Safety action plan (in risk assessment doc https://claude.ai/artifact/HjfvVEyaiFqRBzb4covgs9): user numbers, check profile pictures/text, "Report profile" + auto-hide, Guidelines update, report log, solicitor review. Privacy Policy: name Andrzej Przybysz as data controller. App Store: Content Rights → Yes; DSA trader once Ltd company exists (EU availability must match). Comments feature: plan agreed in principle (18+ only, filter, report/auto-hide, admin page) — not built; reassess risk first.
+5. **9 Nov: publish Android 3.0.0 (47) to production** (Play Console → Internal testing → Promote release → Production). Before sending: update **Data safety** (account email, photos/videos uploaded, view counting, device ID) and the **content rating** questionnaire (user uploads), or review may reject it.
+6. Next app build (3.0.1, iOS + Android together): includes the profile language filter (8 Nov). Android can't trim videos over 90 s (they are refused with "please trim it") — consider later. Camera/microphone are now "required features", so 445 Android devices without them can't install — consider marking them optional. Online Safety action plan (in risk assessment doc https://claude.ai/artifact/HjfvVEyaiFqRBzb4covgs9): user numbers, check profile pictures/text, "Report profile" + auto-hide, Guidelines update, report log, solicitor review. Privacy Policy: name Andrzej Przybysz as data controller. App Store: Content Rights → Yes; DSA trader once Ltd company exists (EU availability must match). Comments feature: plan agreed in principle (18+ only, filter, report/auto-hide, admin page) — not built; reassess risk first.
 7. Before real creator payouts: restore own-view exclusion, App Attest / Play Integrity check, held + reviewed payouts, separate creator payment terms, solicitor + accountant advice.
 8. Later: paid automatic upload scanner; auto-hide after several reports; Block / Hide inside Reel; smarter feed (weighted order, plan from 11 Oct: quality, freshness, fair chance for new items, skip recently seen, followed creators more, variety); remove old non-_v2 functions once most users updated; Supabase Pro if bandwidth runs short.
 
@@ -258,3 +260,14 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 - Replied to Apple in App Store Connect: the permission request had been left out of build 49 by mistake, is now in the new build, appears on first open after the ad consent form, privacy information is accurate and Review Notes say where the request is.
 - App privacy label in App Store Connect still says the app tracks (Advertising Data, Device ID) — correct now the pop-up exists. Keep the pop-up in all future builds.
 - Android is not affected (no tracking pop-up on Android).
+
+## 17. Session log — 8 Nov 2026
+
+- Note: commit 15634b9 (31 Oct, "Tracking pop-up: wait until app is active before asking") is on `feature/video`; `main` is still at 27 Oct (not merged yet).
+- Checked app for Android: no blockers (Android ad IDs, date picker, video player, permissions OK; tracking pop-up iOS only).
+- **Android 3.0.0 (47)** built by Andy (EAS, from `feature/video`), uploaded to Google Play **Internal testing** and published to testers; Andy tested on his Android phone: works. Warnings at upload: 445 devices dropped (camera/microphone now required), no deobfuscation file (harmless).
+- Google Play account checked: no policy tasks, App content up to date, package verified. **Trader status declared: non-trader** (public: Andrzej Adam Przybysz, andy@donkeyapp.com, United Kingdom). Google Play app was already live in production (2.1.11, 31 May 2026) — not just closed testing.
+- **Anonymous joke bug fixed (database, no build needed):** since 24 Oct `jokes_guard` read `profiles` as the anon role, so every anonymous joke (app + website) failed with "permission denied for table profiles" (last anonymous joke 19 Oct). Fixed by checking admin only when signed in. Migration `anon_joke_fix`, files `supabase/anon-joke-fix-migration.sql` / `-rollback.sql`.
+- **Profile language filter:** on a public profile, a row of language buttons ("All languages", then each language with its count, most used first) below the All / Jokes / Memes / Videos switch; only shown when the posts (of the chosen type) use 2+ languages. Database: `get_profile_jokes_with_name_mixed_v2` returns `language` (migration `profile_language`, files `supabase/profile-language-migration.sql` / `-rollback.sql`). App code in `app/profile/[userId].tsx` + `components/profile/ProfileHeader.tsx` — **needs next app build** (not in Android 47).
+- Last commits: app `feature/video` bb21357 (anon fix SQL), 4b0e298 (language filter), plus this log.
+
