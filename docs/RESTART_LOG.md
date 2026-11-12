@@ -159,7 +159,7 @@ video-migration, views-migration, profile-migration, social-migration, **guard-m
 
 ## 6. Admin portal (repo przybyszandy-lang.github.io, folder donkey-admin)
 
-Email OTP login; access only if profiles.is_admin = true. Menu tiles: Moderation (approve, **jokes only**), **Review Uploads**, Language, Add Meme, Add Video, Content Stats, Messages.
+Email OTP login; access only if profiles.is_admin = true. Menu tiles: Moderation (approve, **jokes only**; **Save decisions** button saves Approve/Reject/Spam straight to the database via admin-only `admin_moderate_joke(p_id, p_decision)` — no SQL copying since 12 Nov; Spam = permanent delete; page still pre-selects Spam for short non-"chuck" jokes and Approve for the rest), **Review Uploads**, Language, Add Meme, Add Video, Content Stats, Messages.
 - **Review Uploads** (`review.html`, 24 Oct): saves directly via admin-only functions (no SQL copying). Tab "Waiting for approval": memes/videos oldest first, picture / playable video, description, language, uploader name + email, trusted/blocked badge, past approved/rejected, **blocked by N people** (red); buttons Approve / Reject / Block this uploader. Tab "Uploaders": search email/name; columns waiting/approved/rejected/last upload/**Blocked by**; switches **Trusted** (confirm: goes live without approval) and **Blocked**.
 - **Approve** (jokes), **Language**, **Add Meme**, **Messages**: generate SQL that Andy runs in the SQL Editor.
 - **Add Video:** MP4, ≤ 90 s, ≤ 50 MB, warns over 20 MB, auto preview, description ≤100; SQL inserts approved rows (owner 1b01e76f…). Video prep: HandBrake Fast 720p30.
@@ -245,3 +245,9 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 - Terms (27 Oct, app `lib/terms.json` + website terms.html / conditions.html): provider "Andrzej Przybysz", contact andy@donkeyapp.com (intro + section 19); section 6 says uploads are checked by hand to comply with our Online Safety Act risk assessment, linking donkeyapp.com/risk_assessment.html. `build-web-legal.py` now links that address and the email.
 - **Risk assessment:** full internal version = claude.ai doc "Donkey App — Online Safety Risk Assessments" https://claude.ai/artifact/HjfvVEyaiFqRBzb4covgs9 (includes action plan). Public version (no action plan) = website `risk_assessment.html`, noindex/nofollow, not in sitemap. Still to do from action plan: user numbers, check profile pictures/text, "Report profile" + auto-hide, Guidelines update, report log, solicitor review. Privacy Policy still needs Andrzej Przybysz named as data controller.
 - Dashboard: removed the note "During testing, your own views count too." (own views still count; change later).
+
+## 16. Session log — 12 Nov 2026
+
+- Admin portal: menu and "Back to menu" links now use fixed addresses (`/donkey-admin/...`), fixing the 404 at `donkey-admin/donkey-admin/approve.html` after going back from a page.
+- Jokes moderation: Generate/Copy SQL replaced by **Save decisions** (confirm box shows counts) using new database function `admin_moderate_joke` (admin-only; anon cannot run it). Applied 12 Nov.
+- Supabase: new table `humpad_test_hums` for the separate HumPad app's test recordings (insert-only from the app; not part of Donkey App).
