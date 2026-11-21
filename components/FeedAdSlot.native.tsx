@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dimensions, Platform, Text, View } from "react-native";
+import { Platform, Text, View, useWindowDimensions } from "react-native";
 import {
   NativeAd,
   NativeAdView,
@@ -15,7 +15,9 @@ const AD_UNIT_ID =
   }) || "";
 
 export default function FeedAdSlot({ darkMode }: { darkMode: boolean }) {
-  const screenWidth = Dimensions.get("window").width;
+  // Re-reads the screen width whenever the device rotates, so ads that were
+  // already loaded resize to the new orientation too.
+  const { width: screenWidth } = useWindowDimensions();
   const adCardWidth = screenWidth - 24;
 
   const [nativeAd, setNativeAd] = useState<any | null>(null);
@@ -62,6 +64,8 @@ const mediaHeight = Math.max(rawMediaHeight, 160);
 
   return (
     <NativeAdView
+      // Rebuild the ad view when the width changes so the media resizes properly.
+      key={adCardWidth}
       nativeAd={nativeAd}
       style={{
         width: adCardWidth,

@@ -3,7 +3,8 @@
 Single source of truth for project state, working rules, environment and latest work.
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
-**Last updated:** 9 Nov 2026
+**Last updated:** 21 Nov 2026
+**iOS 3.0.0 (build 51) is live on the App Store.** Version **3.0.1** prepared on 21 Nov: iPad ad rotation fix + new App Store screenshots (3.0.1 draft created in App Store Connect; old "Face ID large display" screenshots removed so all iPhone sizes use the new set).
 **Live (store) app:** 2.1.11 build 42 — branch `main` (iOS App Store and Google Play production)
 **Android 3.0.0 (47):** sent to Google Play **production review** on 9 Nov 2026 (full rollout), together with a new store listing (screenshots, banner, description). Goes live automatically when approved (usually a few days, up to 7).
 **Version 3.0.0 rejected 28 Oct (no tracking pop-up), fixed and resubmitted to App Store review on 28 Oct 2026 with a new build** — branch `feature/video` (to be merged into `main` by Andy). Build numbers are set automatically by EAS.
@@ -25,7 +26,7 @@ Andy is not a coder. No coding jargon. Never say "add this inside this function"
 8. At session end: short progress log + update this file with only the changes actually made.
 9. Never put service-role keys or admin credentials in the app or website.
 10. Database changes: save the SQL in the repo (`supabase/`) with an undo version. Live app must never receive rows it can't display.
-11. EAS is on the **free plan** (limited builds per month): batch app changes into as few builds as possible.
+11. EAS is on a **paid plan** since Nov 2026 (priority builds). Still batch app changes where sensible.
 12. Deleting data needs Andy's clear yes first.
 
 ## 2. Confirmed environment
@@ -283,3 +284,9 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
   - **All listing images (incl. app icon) declared as AI-generated** in Play's AI asset declaration.
 - Not done: Data safety + content rating update (see Next steps 5).
 
+
+## 19. Session log — 21 Nov 2026
+
+- App Store Connect: created iOS version **3.0.1** (Prepare for Submission). Old screenshots on "iPhone with Face ID (large display)" removed; every iPhone size now uses the new medium-display set.
+- Fix: feed ads (`components/FeedAdSlot.native.tsx`) now follow screen rotation on iPad. They used the screen width from when the ad loaded; now they re-read it on rotation and rebuild the ad view at the new width.
+- `app.json` version set to **3.0.1**. Next: build iOS, submit 3.0.1 for review with the new screenshots.
