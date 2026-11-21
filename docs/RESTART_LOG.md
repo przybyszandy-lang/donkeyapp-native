@@ -4,7 +4,7 @@ Single source of truth for project state, working rules, environment and latest 
 Paste this whole file at the start of a new session. It is also saved in the app repository at `docs/RESTART_LOG.md` (branch `feature/video`).
 
 **Last updated:** 21 Nov 2026
-**iOS 3.0.0 (build 51) is live on the App Store.** Version **3.0.1** prepared on 21 Nov: iPad ad rotation fix + new App Store screenshots (3.0.1 draft created in App Store Connect; old "Face ID large display" screenshots removed so all iPhone sizes use the new set).
+**iOS 3.0.0 (build 51) is live on the App Store.** Version **3.0.1** (build 52, uploaded, not yet submitted for review) prepared on 21 Nov: iPad ad rotation fix + new App Store screenshots (3.0.1 draft created in App Store Connect; old "Face ID large display" screenshots removed so all iPhone sizes use the new set).
 **Live (store) app:** 2.1.11 build 42 — branch `main` (iOS App Store and Google Play production)
 **Android 3.0.0 (47):** sent to Google Play **production review** on 9 Nov 2026 (full rollout), together with a new store listing (screenshots, banner, description). Goes live automatically when approved (usually a few days, up to 7).
 **Version 3.0.0 rejected 28 Oct (no tracking pop-up), fixed and resubmitted to App Store review on 28 Oct 2026 with a new build** — branch `feature/video` (to be merged into `main` by Andy). Build numbers are set automatically by EAS.
@@ -290,4 +290,5 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 - App Store Connect: created iOS version **3.0.1** (Prepare for Submission). Old screenshots on "iPhone with Face ID (large display)" removed; every iPhone size now uses the new medium-display set.
 - Fix: feed ads (`components/FeedAdSlot.native.tsx`) now follow screen rotation on iPad. They used the screen width from when the ad loaded; now they re-read it on rotation and rebuild the ad view at the new width.
 - Removed the unused "Change joke language here" guide from Home (it was never shown any more).
-- `app.json` version set to **3.0.1**. Next: build iOS, submit 3.0.1 for review with the new screenshots.
+- `app.json` version set to **3.0.1**. iOS build **52** built and uploaded to App Store Connect (21 Nov). Apple warning ITMS-90725 (built with iOS 26 SDK; iOS 27 SDK needed from April 2027) — no action now, update Expo SDK before April 2027.
+- **Next:** in App Store Connect, open version 3.0.1, select build 52, then Add for Review / Submit. Screenshots are already done.
