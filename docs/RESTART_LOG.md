@@ -289,4 +289,5 @@ Personal, this phone only (others still see the person). "⋯" on feed cards →
 
 - App Store Connect: created iOS version **3.0.1** (Prepare for Submission). Old screenshots on "iPhone with Face ID (large display)" removed; every iPhone size now uses the new medium-display set.
 - Fix: feed ads (`components/FeedAdSlot.native.tsx`) now follow screen rotation on iPad. They used the screen width from when the ad loaded; now they re-read it on rotation and rebuild the ad view at the new width.
+- Removed the unused "Change joke language here" guide from Home (it was never shown any more).
 - `app.json` version set to **3.0.1**. Next: build iOS, submit 3.0.1 for review with the new screenshots.

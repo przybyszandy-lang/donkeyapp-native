@@ -72,7 +72,6 @@ export default function HomeScreen() {
 
   const FAVOURITES_KEY = "donkey:favourites:v1";
   const VOTES_KEY = "donkey:votes:v1";
-  const LANGUAGE_TUTORIAL_KEY = "donkey:language-tutorial-seen:v1";
 
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportJokeId, setReportJokeId] = useState<string | null>(null);
@@ -82,8 +81,6 @@ export default function HomeScreen() {
   const [votesByJokeId, setVotesByJokeId] = useState<Record<string, "bad" | "meh" | "good" | "great">>({});
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [languageTutorialOpen, setLanguageTutorialOpen] = useState(false);
-  const [menuButtonReady, setMenuButtonReady] = useState(false);
   const [openVoteJokeId, setOpenVoteJokeId] = useState<string | null>(null);
 
   const [fontsLoaded] = useFonts({
@@ -443,7 +440,6 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
         console.log("Failed to load settings:", e);
       } finally {
         setLanguageReady(true);
-        setMenuButtonReady(true);
       }
     })();
   }, []);
@@ -837,12 +833,6 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
         style={styles.topIconArea}
         onPress={() => {
           setMenuOpen(true);
-          if (languageTutorialOpen) {
-            setLanguageTutorialOpen(false);
-            AsyncStorage.setItem(LANGUAGE_TUTORIAL_KEY, "true").catch((e) =>
-              console.log("Failed to save language tutorial state:", e)
-            );
-          }
         }}
       >
         <MaterialIcons
@@ -1053,56 +1043,6 @@ const { data, error } = await supabase.rpc("get_recent_jokes_with_names_mixed_v2
           </Pressable>
         </Pressable>
       </Pressable>
-    </Modal>
-  );
-
-  const LanguageTutorialModal = () => (
-    <Modal visible={languageTutorialOpen && menuButtonReady} transparent animationType="fade">
-      <View style={styles.tutorialOverlay}>
-        <View style={styles.tutorialTopRow}>
-          <View
-            style={[
-              styles.tutorialBubble,
-              darkMode && {
-                backgroundColor: "#1b1b1b",
-                borderColor: "#333",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.tutorialTitle,
-                darkMode && { color: "#f3f3f3" },
-              ]}
-            >
-              Change joke language here
-            </Text>
-
-            <Text
-              style={[
-                styles.tutorialText,
-                darkMode && { color: "#bdbdbd" },
-              ]}
-            >
-              Tap the three bars in the top-left corner, then open Settings to choose your joke language.
-            </Text>
-
-            <Pressable
-              style={styles.tutorialButton}
-              onPress={async () => {
-                setLanguageTutorialOpen(false);
-                try {
-                  await AsyncStorage.setItem(LANGUAGE_TUTORIAL_KEY, "true");
-                } catch (e) {
-                  console.log("Failed to save language tutorial state:", e);
-                }
-              }}
-            >
-              <Text style={styles.tutorialButtonText}>Got it</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
     </Modal>
   );
 
@@ -1732,55 +1672,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  tutorialOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.30)",
-    justifyContent: "flex-start",
-  },
-
-  tutorialTopRow: {
-    paddingTop: 8,
-    paddingHorizontal: 12,
-  },
-
-  tutorialBubble: {
-    marginTop: 54,
-    width: 320,
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#e2e2e2",
-  },
-
-  tutorialTitle: {
-    fontSize: 16,
-    color: "#111",
-    marginBottom: 8,
-    fontFamily: "OpenSans_600SemiBold",
-  },
-
-  tutorialText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#555",
-    fontFamily: "OpenSans_400Regular",
-  },
-
-  tutorialButton: {
-    marginTop: 12,
-    alignSelf: "flex-start",
-    backgroundColor: "#2f71d3",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-
-  tutorialButtonText: {
-    color: "#fff",
-    fontFamily: "OpenSans_600SemiBold",
   },
 
   searchBox: {
